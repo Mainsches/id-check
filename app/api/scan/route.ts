@@ -29,6 +29,14 @@ const SOCIAL_DOMAINS = [
   "pinterest.com",
   "threads.net",
   "medium.com",
+  "crunchbase.com",
+];
+
+const PROFESSIONAL_DOMAINS = [
+  "linkedin.com",
+  "github.com",
+  "crunchbase.com",
+  "medium.com",
 ];
 
 const DIRECTORY_DOMAINS = [
@@ -71,6 +79,21 @@ function getDomain(url: string): string {
   }
 }
 
+function parseTotalResults(value: number | string | undefined): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = parseInt(value.replace(/[^\d]/g, ""), 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
+
+function domainMatches(domain: string, targetDomains: string[]) {
+  return targetDomains.some(
+    (d) => domain === d || domain.endsWith(`.${d}`)
+  );
+}
+
 function countMatchingDomains(
   results: SerpOrganicResult[],
   domains: string[]
@@ -79,7 +102,7 @@ function countMatchingDomains(
 
   for (const result of results) {
     const domain = getDomain(result.link || "");
-    if (domains.some((d) => domain === d || domain.endsWith(`.${d}`))) {
+    if (domainMatches(domain, domains)) {
       count += 1;
     }
   }
@@ -127,6 +150,27 @@ function countUsernameMentions(
   return count;
 }
 
+function countCityMentions(
+  results: SerpOrganicResult[],
+  city: string
+): number {
+  if (!city) return 0;
+
+  const target = normalize(city);
+  let count = 0;
+
+  for (const result of results) {
+    const haystack = normalize(
+      `${result.title || ""} ${result.snippet || ""}`
+    );
+    if (haystack.includes(target)) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
 function dedupeResults(groups: SerpOrganicResult[][]): SerpOrganicResult[] {
   const seen = new Set<string>();
   const merged: SerpOrganicResult[] = [];
@@ -162,17 +206,80 @@ async function fetchSerp(query: string): Promise<SerpResponse> {
     throw new Error(`SerpAPI error: ${response.status} ${text}`);
   }
 
-  const data = (await response.json()) as SerpResponse;
-  return data;
+  return (await response.json()) as SerpResponse;
 }
 
-function parseTotalResults(value: number | string | undefined): number {
-  if (typeof value === "number") return value;
-  if (typeof value === "string") {
-    const parsed = parseInt(value.replace(/[^\d]/g, ""), 10);
-    return Number.isNaN(parsed) ? 0 : parsed;
+function estimateVisibilityScore(totalEstimatedResults: number): number {
+  if (totalEstimatedResults <= 0) return 0;
+
+  // Logarithmische Gewichtung statt linearer Explosion
+  const log10 = Math.log10(totalEstimatedResults + 1);
+
+  if (log10 >= 7) return 24; // 10M+
+  if (log10 >= 6) return 21; // 1M+
+  if (log10 >= 5) return 17; // 100k+
+  if (log10 >= 4) return 12; // 10k+
+  if (log10 >= 3) return 8;  // 1k+
+  if (log10 >= 2) return 4;  // 100+
+  return 2;
+}
+
+function buildRecommendations(params: {
+  socialProfilesCount: number;
+  directoryListingsCount: number;
+  usernameExposureCount: number;
+  cityMentions: number;
+}) {
+  const {
+    socialProfilesCount,
+    directoryListingsCount,
+    usernameExposureCount,
+    cityMentions,
+  } = params;
+
+  const recommendations = [];
+
+  if (socialProfilesCount > 0) {
+    recommendations.push({
+      title: "Reduce public profile visibility",
+      description:
+        "Review social profiles and hide phone numbers, links, location details, and unnecessary personal information where possible.",
+    });
   }
-  return 0;
+
+  if (directoryListingsCount > 0) {
+    recommendations.push({
+      title: "Review people-search listings",
+      description:
+        "If directory-style or people-search pages appear, request removal or use available opt-out forms where possible.",
+    });
+  }
+
+  if (usernameExposureCount > 0) {
+    recommendations.push({
+      title: "Use distinct usernames",
+      description:
+        "Avoid reusing the same handle across platforms if you want to reduce cross-platform identity correlation.",
+    });
+  }
+
+  if (cityMentions > 0) {
+    recommendations.push({
+      title: "Limit searchable location data",
+      description:
+        "Reduce public references that combine your full name with your city or region to make correlation harder.",
+    });
+  }
+
+  if (recommendations.length < 3) {
+    recommendations.push({
+      title: "Audit old accounts",
+      description:
+        "Search for inactive or outdated accounts and remove or anonymize profiles you no longer use.",
+    });
+  }
+
+  return recommendations.slice(0, 3);
 }
 
 function buildSummary(params: {
@@ -183,6 +290,7 @@ function buildSummary(params: {
   directoryListingsCount: number;
   usernameExposureCount: number;
   exactNameMatches: number;
+  cityMentions: number;
 }) {
   const {
     fullName,
@@ -192,6 +300,7 @@ function buildSummary(params: {
     directoryListingsCount,
     usernameExposureCount,
     exactNameMatches,
+    cityMentions,
   } = params;
 
   const tone =
@@ -201,7 +310,7 @@ function buildSummary(params: {
       ? "moderately exposed"
       : "currently limited in exposure";
 
-  return `${fullName}'s identity appears ${tone}. We detected approximately ${totalEstimatedResults.toLocaleString()} indexed search results, ${socialProfilesCount} social profile signals, ${directoryListingsCount} directory or people-search signals, ${usernameExposureCount} username-linked signals, and ${exactNameMatches} strong exact-name matches across the top indexed pages.`;
+  return `${fullName}'s identity appears ${tone}. We detected approximately ${totalEstimatedResults.toLocaleString()} indexed search results, ${socialProfilesCount} social profile signals, ${directoryListingsCount} directory or people-search signals, ${usernameExposureCount} username-linked signals, ${exactNameMatches} strong exact-name matches, and ${cityMentions} city-linked result signals across the top indexed pages.`;
 }
 
 export async function POST(request: Request) {
@@ -234,11 +343,17 @@ export async function POST(request: Request) {
       `"${fullName}"`,
       `"${fullName}" ${city}`.trim(),
       `"${fullName}" (site:linkedin.com OR site:instagram.com OR site:tiktok.com OR site:facebook.com OR site:x.com OR site:github.com OR site:reddit.com)`,
+      `"${fullName}" (site:whitepages.com OR site:peekyou.com OR site:spokeo.com OR site:truepeoplesearch.com OR site:mylife.com)`,
     ];
 
     if (username) {
       queries.push(`"${username}"`);
       queries.push(`"${fullName}" "${username}"`);
+      queries.push(`"${username}" (site:instagram.com OR site:tiktok.com OR site:github.com OR site:reddit.com OR site:x.com)`);
+    }
+
+    if (city) {
+      queries.push(`"${fullName}" "${city}"`);
     }
 
     const uniqueQueries = [...new Set(queries.filter(Boolean))];
@@ -259,6 +374,11 @@ export async function POST(request: Request) {
       SOCIAL_DOMAINS
     );
 
+    const professionalProfilesCount = countMatchingDomains(
+      mergedResults,
+      PROFESSIONAL_DOMAINS
+    );
+
     const directoryListingsCount = countMatchingDomains(
       mergedResults,
       DIRECTORY_DOMAINS
@@ -266,28 +386,51 @@ export async function POST(request: Request) {
 
     const exactNameMatches = countExactNameMentions(mergedResults, fullName);
     const usernameExposureCount = countUsernameMentions(mergedResults, username);
+    const cityMentions = countCityMentions(mergedResults, city);
 
     const emailLeakCount = 0;
 
     let score = 0;
 
-    if (totalEstimatedResults >= 1_000_000) score += 28;
-    else if (totalEstimatedResults >= 100_000) score += 22;
-    else if (totalEstimatedResults >= 10_000) score += 16;
-    else if (totalEstimatedResults >= 1_000) score += 10;
-    else if (totalEstimatedResults >= 100) score += 5;
-    else if (totalEstimatedResults > 0) score += 2;
+    // Sichtbarkeit
+    score += estimateVisibilityScore(totalEstimatedResults);
 
-    score += Math.min(socialProfilesCount * 8, 24);
-    score += Math.min(directoryListingsCount * 14, 28);
-    score += Math.min(exactNameMatches * 4, 16);
-    score += Math.min(usernameExposureCount * 6, 18);
-    score += city ? 4 : 0;
-    score += email ? 4 : 0;
+    // Soziale / professionelle Präsenz
+    score += Math.min(socialProfilesCount * 5, 20);
+    score += Math.min(professionalProfilesCount * 3, 9);
+
+    // Directory/People-search ist riskanter
+    score += Math.min(directoryListingsCount * 14, 30);
+
+    // Präzisionssignale
+    score += Math.min(exactNameMatches * 2.5, 15);
+    score += Math.min(usernameExposureCount * 7, 21);
+    score += Math.min(cityMentions * 3, 9);
+
+    if (city) score += 3;
+    if (email) score += 3;
     score += emailLeakCount * 20;
+
+    // Promi-/Celebrity-Abfederung:
+    // Sehr viele Suchergebnisse, aber keine Directory- oder Username-Signale
+    if (
+      totalEstimatedResults >= 1_000_000 &&
+      directoryListingsCount === 0 &&
+      usernameExposureCount === 0 &&
+      !username
+    ) {
+      score -= 8;
+    }
 
     const riskScore = Math.round(clamp(score, 5, 100));
     const riskLevel = getRiskLevel(riskScore);
+
+    const recommendations = buildRecommendations({
+      socialProfilesCount,
+      directoryListingsCount,
+      usernameExposureCount,
+      cityMentions,
+    });
 
     const result: ScanResponse = {
       riskScore,
@@ -333,24 +476,9 @@ export async function POST(request: Request) {
         directoryListingsCount,
         usernameExposureCount,
         exactNameMatches,
+        cityMentions,
       }),
-      recommendations: [
-        {
-          title: "Reduce public profile visibility",
-          description:
-            "Limit the amount of personal data visible on social platforms and public profile pages.",
-        },
-        {
-          title: "Review people-search listings",
-          description:
-            "If directory-style sites appear, request removal or opt-out where possible.",
-        },
-        {
-          title: "Use distinct usernames",
-          description:
-            "Avoid reusing the same handle across platforms if you want to reduce correlation.",
-        },
-      ],
+      recommendations,
       rawSignals: {
         publicResultsCount: totalEstimatedResults,
         socialProfilesCount,
