@@ -12,8 +12,12 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
     result.riskLevel === "High"
       ? "risk-high"
       : result.riskLevel === "Medium"
-        ? "risk-medium"
-        : "risk-low";
+      ? "risk-medium"
+      : "risk-low";
+
+  const scoreStyle = {
+    ["--score-value" as string]: `${result.riskScore}%`,
+  } as React.CSSProperties;
 
   return (
     <section className="result-shell fade-in">
@@ -28,18 +32,31 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
         </button>
       </div>
 
-      <div className="score-panel">
-        <div className="score-circle">
-          <span className="score-number">{result.riskScore}</span>
-          <span className="score-total">/100</span>
+      <div className={`score-panel ${riskClass}`}>
+        <div className={`score-circle ${riskClass}`} style={scoreStyle}>
+          <div className="score-circle-inner">
+            <span className="score-number">{result.riskScore}</span>
+            <span className="score-total">/100</span>
+          </div>
         </div>
 
         <div className="score-meta">
           <p className={`risk-badge ${riskClass}`}>{result.riskLevel} Risk</p>
           <p className="score-copy">
-            This score is based on simulated public visibility, social profile
-            exposure, username correlation, and possible email leak signals.
+            This score combines indexed search visibility, social profile
+            signals, exact-name matches, username correlation, and directory-style
+            exposure indicators.
           </p>
+
+          <div className="score-bar-wrap">
+            <div className="score-bar-track">
+              <div
+                className={`score-bar-fill ${riskClass}`}
+                style={{ width: `${result.riskScore}%` }}
+              />
+            </div>
+            <span className="score-bar-label">{result.riskScore}% exposure score</span>
+          </div>
         </div>
       </div>
 

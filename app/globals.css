@@ -13,6 +13,15 @@
   --radius-lg: 22px;
   --radius-md: 16px;
   --transition: 220ms ease;
+
+  --risk-low: #4ade80;
+  --risk-low-soft: rgba(74, 222, 128, 0.22);
+
+  --risk-medium: #facc15;
+  --risk-medium-soft: rgba(250, 204, 21, 0.22);
+
+  --risk-high: #f87171;
+  --risk-high-soft: rgba(248, 113, 113, 0.22);
 }
 
 * {
@@ -263,13 +272,69 @@ input {
   background: var(--panel-strong);
   border-radius: var(--radius-lg);
   margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.score-panel::after {
+  content: "";
+  position: absolute;
+  inset: -20% auto auto -10%;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  filter: blur(60px);
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.score-panel.risk-low::after {
+  background: var(--risk-low);
+}
+
+.score-panel.risk-medium::after {
+  background: var(--risk-medium);
+}
+
+.score-panel.risk-high::after {
+  background: var(--risk-high);
 }
 
 .score-circle {
-  width: 150px;
-  height: 150px;
+  --ring-color: rgba(255, 255, 255, 0.14);
+  --ring-glow: rgba(255, 255, 255, 0.08);
+  width: 154px;
+  height: 154px;
   border-radius: 999px;
-  border: 1px solid var(--line-strong);
+  padding: 2px;
+  flex-shrink: 0;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 62%),
+    conic-gradient(var(--ring-color) 0% var(--score-value, 0%), rgba(255, 255, 255, 0.08) var(--score-value, 0%) 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 40px var(--ring-glow);
+}
+
+.score-circle.risk-low {
+  --ring-color: var(--risk-low);
+  --ring-glow: var(--risk-low-soft);
+}
+
+.score-circle.risk-medium {
+  --ring-color: var(--risk-medium);
+  --ring-glow: var(--risk-medium-soft);
+}
+
+.score-circle.risk-high {
+  --ring-color: var(--risk-high);
+  --ring-glow: var(--risk-high-soft);
+}
+
+.score-circle-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -277,7 +342,7 @@ input {
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 60%),
     rgba(255, 255, 255, 0.03);
-  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .score-number {
@@ -294,6 +359,7 @@ input {
 
 .score-meta {
   max-width: 700px;
+  width: 100%;
 }
 
 .risk-badge {
@@ -307,10 +373,69 @@ input {
   font-weight: 700;
 }
 
-.risk-low,
-.risk-medium,
+.risk-low {
+  color: var(--risk-low);
+}
+
+.risk-medium {
+  color: var(--risk-medium);
+}
+
 .risk-high {
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--risk-high);
+}
+
+.risk-badge.risk-low {
+  background: var(--risk-low-soft);
+  border-color: rgba(74, 222, 128, 0.26);
+}
+
+.risk-badge.risk-medium {
+  background: var(--risk-medium-soft);
+  border-color: rgba(250, 204, 21, 0.26);
+}
+
+.risk-badge.risk-high {
+  background: var(--risk-high-soft);
+  border-color: rgba(248, 113, 113, 0.26);
+}
+
+.score-bar-wrap {
+  margin-top: 18px;
+}
+
+.score-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.score-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 350ms ease;
+}
+
+.score-bar-fill.risk-low {
+  background: linear-gradient(90deg, rgba(74, 222, 128, 0.7), var(--risk-low));
+}
+
+.score-bar-fill.risk-medium {
+  background: linear-gradient(90deg, rgba(250, 204, 21, 0.7), var(--risk-medium));
+}
+
+.score-bar-fill.risk-high {
+  background: linear-gradient(90deg, rgba(248, 113, 113, 0.7), var(--risk-high));
+}
+
+.score-bar-label {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.92rem;
+  color: var(--text-faint);
 }
 
 .results-grid {
@@ -421,8 +546,8 @@ input {
   }
 
   .score-circle {
-    width: 130px;
-    height: 130px;
+    width: 132px;
+    height: 132px;
   }
 }
 
