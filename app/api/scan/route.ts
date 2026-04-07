@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { ScanRequestBody, ScanResponse, RiskLevel } from "@/types/scan";
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-const GOOGLE_CX = process.env.GOOGLE_CX;
+const SERP_API_KEY = process.env.SERP_API_KEY;
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -18,38 +17,26 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-async function fetchGoogleResults(query: string): Promise<number> {
-  if (!GOOGLE_API_KEY || !GOOGLE_CX) {
-    throw new Error("Missing GOOGLE_API_KEY or GOOGLE_CX");
+async function fetchSearchResults(query: string): Promise<number> {
+  if (!SERP_API_KEY) {
+    throw new Error("Missing SERP_API_KEY");
   }
 
-  const url = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
+  const url = `https://serpapi.com/search.json?q=${encodeURIComponent(
     query
-  )}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}`;
+  )}&engine=google&api_key=${SERP_API_KEY}`;
 
   const response = await fetch(url, {
     method: "GET",
     cache: "no-store",
   });
 
-  const text = await response.text();
+  const data = await response.json();
 
-  if (!response.ok) {
-    throw new Error(`Google API error: ${response.status} ${text}`);
-  }
+  // Anzahl organischer Ergebnisse (Top Results)
+  const resultsCount = data?.organic_results?.length || 0;
 
-  const data = JSON.parse(text) as {
-    searchInformation?: {
-      totalResults?: string;
-    };
-  };
-
-  const totalResults = parseInt(
-    data.searchInformation?.totalResults ?? "0",
-    10
-  );
-
-  return Number.isNaN(totalResults) ? 0 : totalResults;
+  return resultsCount;
 }
 
 function buildSummary(params: {
@@ -74,14 +61,9 @@ function buildSummary(params: {
       ? "highly exposed"
       : riskLevel === "Medium"
       ? "moderately exposed"
-      : "relatively limited in exposure";
+      : "low exposed";
 
-  const leakSentence =
-    emailLeakCount > 0
-      ? "A leaked email signal increases the likelihood of account targeting or credential reuse risk."
-      : "No email leak was flagged in this MVP simulation, which reduces one major risk factor.";
-
-  return `${fullName}'s digital footprint appears ${tone}. We found ${publicResultsCount.toLocaleString()} public web results, ${socialProfilesCount} likely social profile signals, and ${usernameExposureCount} username-linked exposure points. ${leakSentence} The strongest next step is to reduce discoverability across public profiles, usernames, and searchable contact details.`;
+  return `${fullName}'s identity appears ${tone}. We detected ${publicResultsCount} indexed search results, ${socialProfilesCount} possible social profiles, and ${usernameExposureCount} username-linked signals.`;
 }
 
 export async function POST(request: Request) {
@@ -109,25 +91,24 @@ export async function POST(request: Request) {
     }
 
     const fullName = `${firstName} ${lastName}`.trim();
-    const searchQuery = city ? `"${fullName}" "${city}"` : `"${fullName}"`;
+    const query = city ? `${fullName} ${city}` : fullName;
 
-    const publicResultsCount = await fetchGoogleResults(searchQuery);
+    // 🔍 SerpAPI Suche
+    const publicResultsCount = await fetchSearchResults(query);
 
-    const socialProfilesCount = username ? 2 : publicResultsCount > 1000 ? 2 : 1;
+    // einfache Logik (MVP)
+    const socialProfilesCount = username ? 2 : 1;
     const usernameExposureCount = username ? 2 : 0;
     const emailLeakCount = 0;
-    const exactNameMatches =
-      publicResultsCount > 0
-        ? Math.min(6, Math.max(1, Math.round(publicResultsCount / 50000)))
-        : 0;
+    const exactNameMatches = publicResultsCount > 0 ? 1 : 0;
 
+    // 🧠 Risk Score
     let score = 0;
-    score += Math.min(publicResultsCount / 2000, 45);
-    score += socialProfilesCount * 7;
-    score += usernameExposureCount * 4;
-    score += emailLeakCount * 22;
-    score += city ? 6 : 0;
-    score += email ? 4 : 0;
+    score += publicResultsCount * 5;
+    score += socialProfilesCount * 10;
+    score += usernameExposureCount * 5;
+    score += city ? 5 : 0;
+    score += email ? 5 : 0;
     score += exactNameMatches * 2;
 
     const riskScore = Math.round(clamp(score, 5, 100));
@@ -139,7 +120,7 @@ export async function POST(request: Request) {
       findings: [
         {
           label: "Public web results",
-          value: `${publicResultsCount.toLocaleString()} public search results found`,
+          value: `${publicResultsCount} search results detected`,
         },
         {
           label: "Possible social profiles",
@@ -148,10 +129,6 @@ export async function POST(request: Request) {
         {
           label: "Potential email leaks",
           value: `${emailLeakCount} leak signals found`,
-        },
-        {
-          label: "Exact name matches",
-          value: `${exactNameMatches} exact name matches identified`,
         },
         {
           label: "Username exposure",
@@ -171,19 +148,19 @@ export async function POST(request: Request) {
       }),
       recommendations: [
         {
-          title: "Review public profile visibility",
+          title: "Reduce public visibility",
           description:
-            "Hide phone numbers, personal links, and unnecessary bio details from public social profiles where possible.",
+            "Limit personal data exposure across profiles and search results.",
         },
         {
-          title: "Use different usernames",
+          title: "Use unique usernames",
           description:
-            "Avoid reusing the same username across multiple platforms if you want to reduce identity correlation.",
+            "Avoid reusing the same username across multiple platforms.",
         },
         {
           title: "Audit old accounts",
           description:
-            "Search for inactive profiles and remove or anonymize accounts you no longer use.",
+            "Remove or anonymize accounts you no longer use.",
         },
       ],
       rawSignals: {
@@ -198,14 +175,11 @@ export async function POST(request: Request) {
     };
 
     return NextResponse.json(result, { status: 200 });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error";
-
-    console.error("Scan API error:", message);
+  } catch (error: any) {
+    console.error("Scan error:", error);
 
     return NextResponse.json(
-      { error: message },
+      { error: error.message || "Unknown error" },
       { status: 500 }
     );
   }
