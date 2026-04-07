@@ -16,6 +16,13 @@ type SerpResponse = {
   organic_results?: SerpOrganicResult[];
 };
 
+const EMPTY_SERP_RESPONSE: SerpResponse = {
+  search_information: {
+    total_results: 0,
+  },
+  organic_results: [],
+};
+
 const SOCIAL_DOMAINS = [
   "linkedin.com",
   "instagram.com",
@@ -146,7 +153,6 @@ function countExactNameMatches(results: SerpOrganicResult[], fullName: string) {
     const inTitle = normalize(result.title || "").includes(normalize(fullName));
     const inSnippet = normalize(result.snippet || "").includes(normalize(fullName));
 
-    // nur starke Treffer zählen
     if (inTitle || inSnippet) {
       count += 1;
     }
@@ -317,18 +323,17 @@ export async function POST(request: Request) {
       directoryResponse,
       usernameResponse,
       usernameComboResponse,
-    ] = await Promise.all([
+    ] = await Promise.all<SerpResponse>([
       fetchSerp(exactNameQuery),
-      cityQuery ? fetchSerp(cityQuery) : Promise.resolve({ organic_results: [] }),
+      cityQuery ? fetchSerp(cityQuery) : Promise.resolve(EMPTY_SERP_RESPONSE),
       fetchSerp(socialQuery),
       fetchSerp(directoryQuery),
-      usernameQuery ? fetchSerp(usernameQuery) : Promise.resolve({ organic_results: [] }),
+      usernameQuery ? fetchSerp(usernameQuery) : Promise.resolve(EMPTY_SERP_RESPONSE),
       usernameComboQuery
         ? fetchSerp(usernameComboQuery)
-        : Promise.resolve({ organic_results: [] }),
+        : Promise.resolve(EMPTY_SERP_RESPONSE),
     ]);
 
-    // Gesamt-Sichtbarkeit nur aus normalen Personen-Queries
     const totalEstimatedResults = Math.max(
       parseTotalResults(exactNameResponse.search_information?.total_results),
       parseTotalResults(cityResponse.search_information?.total_results),
@@ -363,7 +368,6 @@ export async function POST(request: Request) {
     const cityMentionsRaw = identityResults.filter((r) => hasCity(r, city)).length;
     const cityMentions = Math.min(cityMentionsRaw, 6);
 
-    // Social nur dann zählen, wenn Name oder Username wirklich im Ergebnis sichtbar ist
     const filteredSocialResults = socialResults.filter((r) => {
       const domain = getDomain(r.link || "");
       if (!domainMatches(domain, SOCIAL_DOMAINS)) return false;
@@ -375,7 +379,6 @@ export async function POST(request: Request) {
       6
     );
 
-    // Username nur auf nicht-directory domains und nur wenn username wirklich vorkommt
     const filteredUsernameResults = usernameResults.filter((r) => {
       const domain = getDomain(r.link || "");
       if (!domain) return false;
@@ -388,8 +391,6 @@ export async function POST(request: Request) {
       5
     );
 
-    // Directory nur streng zählen:
-    // voller Name muss drin sein und bei vorhandener Stadt idealerweise auch Stadt
     const filteredDirectoryResults = directoryResults.filter((r) => {
       const domain = getDomain(r.link || "");
       if (!domainMatches(domain, DIRECTORY_DOMAINS)) return false;
@@ -409,10 +410,7 @@ export async function POST(request: Request) {
 
     let score = 0;
 
-    // Web visibility schwächer gewichten als vorher
     score += estimateVisibilityScore(totalEstimatedResults);
-
-    // Präzisere Signale stärker gewichten
     score += socialProfilesCount * 6;
     score += directoryListingsCount * 12;
     score += exactNameMatches * 2;
@@ -423,8 +421,6 @@ export async function POST(request: Request) {
     if (email) score += 2;
     score += emailLeakCount * 20;
 
-    // Promi-/Bekanntheits-Abfederung:
-    // riesige Sichtbarkeit, aber keine harten personenspezifischen Risiken
     if (
       totalEstimatedResults >= 1_000_000 &&
       directoryListingsCount === 0 &&
