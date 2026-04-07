@@ -18,7 +18,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-async function fetchGoogleResults(query: string) {
+async function fetchGoogleResults(query: string): Promise<number> {
   if (!GOOGLE_API_KEY || !GOOGLE_CX) {
     throw new Error("Missing GOOGLE_API_KEY or GOOGLE_CX");
   }
@@ -27,24 +27,25 @@ async function fetchGoogleResults(query: string) {
     query
   )}&key=${GOOGLE_API_KEY}&cx=${GOOGLE_CX}`;
 
-  console.log("🔍 Google Query:", url);
-
   const response = await fetch(url, {
     method: "GET",
     cache: "no-store",
   });
 
   const text = await response.text();
-  console.log("📦 Google Raw Response:", text);
 
   if (!response.ok) {
     throw new Error(`Google API error: ${response.status} ${text}`);
   }
 
-  const data = JSON.parse(text);
+  const data = JSON.parse(text) as {
+    searchInformation?: {
+      totalResults?: string;
+    };
+  };
 
   const totalResults = parseInt(
-    data?.searchInformation?.totalResults || "0",
+    data.searchInformation?.totalResults ?? "0",
     10
   );
 
@@ -75,7 +76,12 @@ function buildSummary(params: {
       ? "moderately exposed"
       : "relatively limited in exposure";
 
-  return `${fullName}'s digital footprint appears ${tone}. We found ${publicResultsCount.toLocaleString()} public web results and ${socialProfilesCount} possible social profiles.`;
+  const leakSentence =
+    emailLeakCount > 0
+      ? "A leaked email signal increases the likelihood of account targeting or credential reuse risk."
+      : "No email leak was flagged in this MVP simulation, which reduces one major risk factor.";
+
+  return `${fullName}'s digital footprint appears ${tone}. We found ${publicResultsCount.toLocaleString()} public web results, ${socialProfilesCount} likely social profile signals, and ${usernameExposureCount} username-linked exposure points. ${leakSentence} The strongest next step is to reduce discoverability across public profiles, usernames, and searchable contact details.`;
 }
 
 export async function POST(request: Request) {
@@ -102,22 +108,27 @@ export async function POST(request: Request) {
       );
     }
 
-    const fullName = `${firstName} ${lastName}`;
-    const searchQuery = city
-      ? `"${fullName}" "${city}"`
-      : `"${fullName}"`;
+    const fullName = `${firstName} ${lastName}`.trim();
+    const searchQuery = city ? `"${fullName}" "${city}"` : `"${fullName}"`;
 
-    // 🔍 Google API CALL
     const publicResultsCount = await fetchGoogleResults(searchQuery);
 
-    const socialProfilesCount = username ? 2 : 1;
+    const socialProfilesCount = username ? 2 : publicResultsCount > 1000 ? 2 : 1;
     const usernameExposureCount = username ? 2 : 0;
     const emailLeakCount = 0;
+    const exactNameMatches =
+      publicResultsCount > 0
+        ? Math.min(6, Math.max(1, Math.round(publicResultsCount / 50000)))
+        : 0;
 
     let score = 0;
     score += Math.min(publicResultsCount / 2000, 45);
     score += socialProfilesCount * 7;
     score += usernameExposureCount * 4;
+    score += emailLeakCount * 22;
+    score += city ? 6 : 0;
+    score += email ? 4 : 0;
+    score += exactNameMatches * 2;
 
     const riskScore = Math.round(clamp(score, 5, 100));
     const riskLevel = getRiskLevel(riskScore);
@@ -138,6 +149,17 @@ export async function POST(request: Request) {
           label: "Potential email leaks",
           value: `${emailLeakCount} leak signals found`,
         },
+        {
+          label: "Exact name matches",
+          value: `${exactNameMatches} exact name matches identified`,
+        },
+        {
+          label: "Username exposure",
+          value:
+            usernameExposureCount > 0
+              ? `${usernameExposureCount} username-linked results found`
+              : "No username-based exposure checked",
+        },
       ],
       aiSummary: buildSummary({
         fullName,
@@ -149,24 +171,41 @@ export async function POST(request: Request) {
       }),
       recommendations: [
         {
-          title: "Reduce public visibility",
+          title: "Review public profile visibility",
           description:
-            "Limit personal data exposure across profiles and search results.",
+            "Hide phone numbers, personal links, and unnecessary bio details from public social profiles where possible.",
+        },
+        {
+          title: "Use different usernames",
+          description:
+            "Avoid reusing the same username across multiple platforms if you want to reduce identity correlation.",
+        },
+        {
+          title: "Audit old accounts",
+          description:
+            "Search for inactive profiles and remove or anonymize accounts you no longer use.",
         },
       ],
       rawSignals: {
         publicResultsCount,
+        socialProfilesCount,
+        emailLeakCount,
+        exactNameMatches,
+        usernameExposureCount,
+        cityProvided: Boolean(city),
+        emailProvided: Boolean(email),
       },
     };
 
-    return NextResponse.json(result);
-  } catch (error: any) {
-    console.error("❌ FULL ERROR:", error);
+    return NextResponse.json(result, { status: 200 });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
+
+    console.error("Scan API error:", message);
 
     return NextResponse.json(
-      {
-        error: error.message || "Unknown error",
-      },
+      { error: message },
       { status: 500 }
     );
   }
