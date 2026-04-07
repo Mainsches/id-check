@@ -38,7 +38,10 @@ async function fetchGoogleResults(query: string) {
   }
 
   const data = await response.json();
-  const totalResults = parseInt(data?.searchInformation?.totalResults || "0", 10);
+  const totalResults = parseInt(
+    data?.searchInformation?.totalResults || "0",
+    10
+  );
 
   return Number.isNaN(totalResults) ? 0 : totalResults;
 }
@@ -64,8 +67,8 @@ function buildSummary(params: {
     riskLevel === "High"
       ? "highly exposed"
       : riskLevel === "Medium"
-        ? "moderately exposed"
-        : "relatively limited in exposure";
+      ? "moderately exposed"
+      : "relatively limited in exposure";
 
   const leakSentence =
     emailLeakCount > 0
@@ -100,15 +103,29 @@ export async function POST(request: Request) {
     }
 
     const fullName = `${firstName} ${lastName}`.trim();
-    const searchQuery = city ? `"${fullName}" "${city}"` : `"${fullName}"`;
+    const searchQuery = city
+      ? `"${fullName}" "${city}"`
+      : `"${fullName}"`;
 
+    // 🔍 echte Google Suche
     const publicResultsCount = await fetchGoogleResults(searchQuery);
 
+    // einfache Logik (MVP)
     const socialProfilesCount = username ? 2 : publicResultsCount > 1000 ? 2 : 1;
     const usernameExposureCount = username ? 2 : 0;
-    const emailLeakCount: number = email ? 0 : 0;
-    const exactNameMatches = publicResultsCount > 0 ? Math.min(6, Math.max(1, Math.round(publicResultsCount / 50000))) : 0;
 
+    // ❗ fix: kein TypeScript Fehler mehr
+    const emailLeakCount = 0;
+
+    const exactNameMatches =
+      publicResultsCount > 0
+        ? Math.min(
+            6,
+            Math.max(1, Math.round(publicResultsCount / 50000))
+          )
+        : 0;
+
+    // 🧠 Risk Score
     let score = 0;
     score += Math.min(publicResultsCount / 2000, 45);
     score += socialProfilesCount * 7;
@@ -135,17 +152,17 @@ export async function POST(request: Request) {
         },
         {
           label: "Potential email leaks",
-          value: `${emailLeakCount} leak signal${emailLeakCount === 1 ? "" : "s"} found`,
+          value: `${emailLeakCount} leak signals found`,
         },
         {
           label: "Exact name matches",
-          value: `${exactNameMatches} exact name match${exactNameMatches === 1 ? "" : "es"} identified`,
+          value: `${exactNameMatches} exact name matches identified`,
         },
         {
           label: "Username exposure",
           value:
             usernameExposureCount > 0
-              ? `${usernameExposureCount} username-linked result${usernameExposureCount === 1 ? "" : "s"} found`
+              ? `${usernameExposureCount} username-linked results found`
               : "No username-based exposure checked",
         },
       ],
