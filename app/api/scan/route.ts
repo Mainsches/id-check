@@ -32,13 +32,6 @@ const SOCIAL_DOMAINS = [
   "crunchbase.com",
 ];
 
-const PROFESSIONAL_DOMAINS = [
-  "linkedin.com",
-  "github.com",
-  "crunchbase.com",
-  "medium.com",
-];
-
 const DIRECTORY_DOMAINS = [
   "truepeoplesearch.com",
   "whitepages.com",
@@ -57,18 +50,18 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function getRiskLevel(score: number): RiskLevel {
-  if (score >= 70) return "High";
-  if (score >= 40) return "Medium";
-  return "Low";
+function normalize(text: string) {
+  return text.toLowerCase().trim();
 }
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function normalize(text: string) {
-  return text.toLowerCase().trim();
+function getRiskLevel(score: number): RiskLevel {
+  if (score >= 70) return "High";
+  if (score >= 40) return "Medium";
+  return "Low";
 }
 
 function getDomain(url: string): string {
@@ -94,81 +87,24 @@ function domainMatches(domain: string, targetDomains: string[]) {
   );
 }
 
-function countMatchingDomains(
-  results: SerpOrganicResult[],
-  domains: string[]
-): number {
-  let count = 0;
-
-  for (const result of results) {
-    const domain = getDomain(result.link || "");
-    if (domainMatches(domain, domains)) {
-      count += 1;
-    }
-  }
-
-  return count;
+function textOf(result: SerpOrganicResult) {
+  return normalize(
+    `${result.title || ""} ${result.snippet || ""} ${result.link || ""}`
+  );
 }
 
-function countExactNameMentions(
-  results: SerpOrganicResult[],
-  fullName: string
-): number {
-  const target = normalize(fullName);
-  let count = 0;
-
-  for (const result of results) {
-    const haystack = normalize(
-      `${result.title || ""} ${result.snippet || ""} ${result.link || ""}`
-    );
-    if (haystack.includes(target)) {
-      count += 1;
-    }
-  }
-
-  return count;
+function hasExactName(result: SerpOrganicResult, fullName: string) {
+  return textOf(result).includes(normalize(fullName));
 }
 
-function countUsernameMentions(
-  results: SerpOrganicResult[],
-  username: string
-): number {
-  if (!username) return 0;
-
-  const target = normalize(username);
-  let count = 0;
-
-  for (const result of results) {
-    const haystack = normalize(
-      `${result.title || ""} ${result.snippet || ""} ${result.link || ""}`
-    );
-    if (haystack.includes(target)) {
-      count += 1;
-    }
-  }
-
-  return count;
+function hasUsername(result: SerpOrganicResult, username: string) {
+  if (!username) return false;
+  return textOf(result).includes(normalize(username));
 }
 
-function countCityMentions(
-  results: SerpOrganicResult[],
-  city: string
-): number {
-  if (!city) return 0;
-
-  const target = normalize(city);
-  let count = 0;
-
-  for (const result of results) {
-    const haystack = normalize(
-      `${result.title || ""} ${result.snippet || ""}`
-    );
-    if (haystack.includes(target)) {
-      count += 1;
-    }
-  }
-
-  return count;
+function hasCity(result: SerpOrganicResult, city: string) {
+  if (!city) return false;
+  return textOf(result).includes(normalize(city));
 }
 
 function dedupeResults(groups: SerpOrganicResult[][]): SerpOrganicResult[] {
@@ -185,6 +121,38 @@ function dedupeResults(groups: SerpOrganicResult[][]): SerpOrganicResult[] {
   }
 
   return merged;
+}
+
+function uniqueDomains(
+  results: SerpOrganicResult[],
+  allowedDomains?: string[]
+): string[] {
+  const set = new Set<string>();
+
+  for (const result of results) {
+    const domain = getDomain(result.link || "");
+    if (!domain) continue;
+    if (allowedDomains && !domainMatches(domain, allowedDomains)) continue;
+    set.add(domain);
+  }
+
+  return [...set];
+}
+
+function countExactNameMatches(results: SerpOrganicResult[], fullName: string) {
+  let count = 0;
+
+  for (const result of results) {
+    const inTitle = normalize(result.title || "").includes(normalize(fullName));
+    const inSnippet = normalize(result.snippet || "").includes(normalize(fullName));
+
+    // nur starke Treffer zählen
+    if (inTitle || inSnippet) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 async function fetchSerp(query: string): Promise<SerpResponse> {
@@ -211,17 +179,13 @@ async function fetchSerp(query: string): Promise<SerpResponse> {
 
 function estimateVisibilityScore(totalEstimatedResults: number): number {
   if (totalEstimatedResults <= 0) return 0;
-
-  // Logarithmische Gewichtung statt linearer Explosion
-  const log10 = Math.log10(totalEstimatedResults + 1);
-
-  if (log10 >= 7) return 24; // 10M+
-  if (log10 >= 6) return 21; // 1M+
-  if (log10 >= 5) return 17; // 100k+
-  if (log10 >= 4) return 12; // 10k+
-  if (log10 >= 3) return 8;  // 1k+
-  if (log10 >= 2) return 4;  // 100+
-  return 2;
+  if (totalEstimatedResults >= 10_000_000) return 18;
+  if (totalEstimatedResults >= 1_000_000) return 15;
+  if (totalEstimatedResults >= 100_000) return 12;
+  if (totalEstimatedResults >= 10_000) return 9;
+  if (totalEstimatedResults >= 1_000) return 6;
+  if (totalEstimatedResults >= 100) return 3;
+  return 1;
 }
 
 function buildRecommendations(params: {
@@ -310,7 +274,7 @@ function buildSummary(params: {
       ? "moderately exposed"
       : "currently limited in exposure";
 
-  return `${fullName}'s identity appears ${tone}. We detected approximately ${totalEstimatedResults.toLocaleString()} indexed search results, ${socialProfilesCount} social profile signals, ${directoryListingsCount} directory or people-search signals, ${usernameExposureCount} username-linked signals, ${exactNameMatches} strong exact-name matches, and ${cityMentions} city-linked result signals across the top indexed pages.`;
+  return `${fullName}'s identity appears ${tone}. We detected approximately ${totalEstimatedResults.toLocaleString()} indexed search results, ${socialProfilesCount} social profile signals, ${directoryListingsCount} directory or people-search signals, ${usernameExposureCount} username-linked signals, ${exactNameMatches} strong exact-name matches, and ${cityMentions} city-linked result signals across the most relevant indexed pages.`;
 }
 
 export async function POST(request: Request) {
@@ -339,80 +303,128 @@ export async function POST(request: Request) {
 
     const fullName = `${firstName} ${lastName}`.trim();
 
-    const queries: string[] = [
-      `"${fullName}"`,
-      `"${fullName}" ${city}`.trim(),
-      `"${fullName}" (site:linkedin.com OR site:instagram.com OR site:tiktok.com OR site:facebook.com OR site:x.com OR site:github.com OR site:reddit.com)`,
-      `"${fullName}" (site:whitepages.com OR site:peekyou.com OR site:spokeo.com OR site:truepeoplesearch.com OR site:mylife.com)`,
-    ];
+    const exactNameQuery = `"${fullName}"`;
+    const cityQuery = city ? `"${fullName}" "${city}"` : "";
+    const socialQuery = `"${fullName}" (site:linkedin.com OR site:instagram.com OR site:tiktok.com OR site:facebook.com OR site:x.com OR site:github.com OR site:reddit.com)`;
+    const directoryQuery = `"${fullName}" (site:whitepages.com OR site:peekyou.com OR site:spokeo.com OR site:truepeoplesearch.com OR site:mylife.com)`;
+    const usernameQuery = username ? `"${username}"` : "";
+    const usernameComboQuery = username ? `"${fullName}" "${username}"` : "";
 
-    if (username) {
-      queries.push(`"${username}"`);
-      queries.push(`"${fullName}" "${username}"`);
-      queries.push(`"${username}" (site:instagram.com OR site:tiktok.com OR site:github.com OR site:reddit.com OR site:x.com)`);
-    }
+    const [
+      exactNameResponse,
+      cityResponse,
+      socialResponse,
+      directoryResponse,
+      usernameResponse,
+      usernameComboResponse,
+    ] = await Promise.all([
+      fetchSerp(exactNameQuery),
+      cityQuery ? fetchSerp(cityQuery) : Promise.resolve({ organic_results: [] }),
+      fetchSerp(socialQuery),
+      fetchSerp(directoryQuery),
+      usernameQuery ? fetchSerp(usernameQuery) : Promise.resolve({ organic_results: [] }),
+      usernameComboQuery
+        ? fetchSerp(usernameComboQuery)
+        : Promise.resolve({ organic_results: [] }),
+    ]);
 
-    if (city) {
-      queries.push(`"${fullName}" "${city}"`);
-    }
-
-    const uniqueQueries = [...new Set(queries.filter(Boolean))];
-
-    const responses = await Promise.all(uniqueQueries.map((q) => fetchSerp(q)));
-
-    const totals = responses.map((r) =>
-      parseTotalResults(r.search_information?.total_results)
+    // Gesamt-Sichtbarkeit nur aus normalen Personen-Queries
+    const totalEstimatedResults = Math.max(
+      parseTotalResults(exactNameResponse.search_information?.total_results),
+      parseTotalResults(cityResponse.search_information?.total_results),
+      0
     );
 
-    const totalEstimatedResults = Math.max(...totals, 0);
+    const identityResults = dedupeResults([
+      exactNameResponse.organic_results || [],
+      cityResponse.organic_results || [],
+    ]);
 
-    const organicGroups = responses.map((r) => r.organic_results || []);
-    const mergedResults = dedupeResults(organicGroups);
+    const socialResults = dedupeResults([
+      socialResponse.organic_results || [],
+      exactNameResponse.organic_results || [],
+      cityResponse.organic_results || [],
+      usernameComboResponse.organic_results || [],
+    ]);
 
-    const socialProfilesCount = countMatchingDomains(
-      mergedResults,
-      SOCIAL_DOMAINS
+    const usernameResults = dedupeResults([
+      usernameResponse.organic_results || [],
+      usernameComboResponse.organic_results || [],
+      socialResponse.organic_results || [],
+    ]);
+
+    const directoryResults = dedupeResults([
+      directoryResponse.organic_results || [],
+    ]);
+
+    const exactNameMatchesRaw = countExactNameMatches(identityResults, fullName);
+    const exactNameMatches = Math.min(exactNameMatchesRaw, 8);
+
+    const cityMentionsRaw = identityResults.filter((r) => hasCity(r, city)).length;
+    const cityMentions = Math.min(cityMentionsRaw, 6);
+
+    // Social nur dann zählen, wenn Name oder Username wirklich im Ergebnis sichtbar ist
+    const filteredSocialResults = socialResults.filter((r) => {
+      const domain = getDomain(r.link || "");
+      if (!domainMatches(domain, SOCIAL_DOMAINS)) return false;
+      return hasExactName(r, fullName) || hasUsername(r, username);
+    });
+
+    const socialProfilesCount = Math.min(
+      uniqueDomains(filteredSocialResults, SOCIAL_DOMAINS).length,
+      6
     );
 
-    const professionalProfilesCount = countMatchingDomains(
-      mergedResults,
-      PROFESSIONAL_DOMAINS
+    // Username nur auf nicht-directory domains und nur wenn username wirklich vorkommt
+    const filteredUsernameResults = usernameResults.filter((r) => {
+      const domain = getDomain(r.link || "");
+      if (!domain) return false;
+      if (domainMatches(domain, DIRECTORY_DOMAINS)) return false;
+      return hasUsername(r, username);
+    });
+
+    const usernameExposureCount = Math.min(
+      uniqueDomains(filteredUsernameResults).length,
+      5
     );
 
-    const directoryListingsCount = countMatchingDomains(
-      mergedResults,
-      DIRECTORY_DOMAINS
-    );
+    // Directory nur streng zählen:
+    // voller Name muss drin sein und bei vorhandener Stadt idealerweise auch Stadt
+    const filteredDirectoryResults = directoryResults.filter((r) => {
+      const domain = getDomain(r.link || "");
+      if (!domainMatches(domain, DIRECTORY_DOMAINS)) return false;
+      if (!hasExactName(r, fullName)) return false;
+      if (city) {
+        return hasCity(r, city);
+      }
+      return true;
+    });
 
-    const exactNameMatches = countExactNameMentions(mergedResults, fullName);
-    const usernameExposureCount = countUsernameMentions(mergedResults, username);
-    const cityMentions = countCityMentions(mergedResults, city);
+    const directoryListingsCount = Math.min(
+      uniqueDomains(filteredDirectoryResults, DIRECTORY_DOMAINS).length,
+      4
+    );
 
     const emailLeakCount = 0;
 
     let score = 0;
 
-    // Sichtbarkeit
+    // Web visibility schwächer gewichten als vorher
     score += estimateVisibilityScore(totalEstimatedResults);
 
-    // Soziale / professionelle Präsenz
-    score += Math.min(socialProfilesCount * 5, 20);
-    score += Math.min(professionalProfilesCount * 3, 9);
+    // Präzisere Signale stärker gewichten
+    score += socialProfilesCount * 6;
+    score += directoryListingsCount * 12;
+    score += exactNameMatches * 2;
+    score += usernameExposureCount * 7;
+    score += cityMentions > 0 ? Math.min(cityMentions * 2, 8) : 0;
 
-    // Directory/People-search ist riskanter
-    score += Math.min(directoryListingsCount * 14, 30);
-
-    // Präzisionssignale
-    score += Math.min(exactNameMatches * 2.5, 15);
-    score += Math.min(usernameExposureCount * 7, 21);
-    score += Math.min(cityMentions * 3, 9);
-
-    if (city) score += 3;
-    if (email) score += 3;
+    if (city) score += 2;
+    if (email) score += 2;
     score += emailLeakCount * 20;
 
-    // Promi-/Celebrity-Abfederung:
-    // Sehr viele Suchergebnisse, aber keine Directory- oder Username-Signale
+    // Promi-/Bekanntheits-Abfederung:
+    // riesige Sichtbarkeit, aber keine harten personenspezifischen Risiken
     if (
       totalEstimatedResults >= 1_000_000 &&
       directoryListingsCount === 0 &&
