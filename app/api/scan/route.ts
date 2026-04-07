@@ -17,6 +17,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+// 🔥 WICHTIG: echte Google Result Count holen
 async function fetchSearchResults(query: string): Promise<number> {
   if (!SERP_API_KEY) {
     throw new Error("Missing SERP_API_KEY");
@@ -31,20 +32,35 @@ async function fetchSearchResults(query: string): Promise<number> {
     cache: "no-store",
   });
 
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`SerpAPI error: ${response.status} ${text}`);
+  }
+
   const data = await response.json();
 
-  // Anzahl organischer Ergebnisse (Top Results)
-  const resultsCount = data?.organic_results?.length || 0;
+  // 🧠 echte Anzahl extrahieren
+  let totalResultsRaw = data?.search_information?.total_results;
 
-  return resultsCount;
+  if (!totalResultsRaw) {
+    const fallback = data?.search_information?.organic_results_state || "0";
+    totalResultsRaw = fallback;
+  }
+
+  const totalResults =
+    typeof totalResultsRaw === "number"
+      ? totalResultsRaw
+      : parseInt(String(totalResultsRaw).replace(/[^\d]/g, ""), 10);
+
+  return Number.isNaN(totalResults) ? 0 : totalResults;
 }
 
+// 🧠 AI Summary
 function buildSummary(params: {
   fullName: string;
   riskLevel: RiskLevel;
   publicResultsCount: number;
   socialProfilesCount: number;
-  emailLeakCount: number;
   usernameExposureCount: number;
 }) {
   const {
@@ -52,7 +68,6 @@ function buildSummary(params: {
     riskLevel,
     publicResultsCount,
     socialProfilesCount,
-    emailLeakCount,
     usernameExposureCount,
   } = params;
 
@@ -63,7 +78,7 @@ function buildSummary(params: {
       ? "moderately exposed"
       : "low exposed";
 
-  return `${fullName}'s identity appears ${tone}. We detected ${publicResultsCount} indexed search results, ${socialProfilesCount} possible social profiles, and ${usernameExposureCount} username-linked signals.`;
+  return `${fullName}'s identity appears ${tone}. We detected approximately ${publicResultsCount.toLocaleString()} indexed search results, ${socialProfilesCount} possible social profiles, and ${usernameExposureCount} username-linked signals.`;
 }
 
 export async function POST(request: Request) {
@@ -93,18 +108,25 @@ export async function POST(request: Request) {
     const fullName = `${firstName} ${lastName}`.trim();
     const query = city ? `${fullName} ${city}` : fullName;
 
-    // 🔍 SerpAPI Suche
+    // 🔥 echte Suche
     const publicResultsCount = await fetchSearchResults(query);
 
-    // einfache Logik (MVP)
+    // 🧪 einfache Zusatzlogik (MVP)
     const socialProfilesCount = username ? 2 : 1;
     const usernameExposureCount = username ? 2 : 0;
     const emailLeakCount = 0;
     const exactNameMatches = publicResultsCount > 0 ? 1 : 0;
 
-    // 🧠 Risk Score
+    // 🔥 REALISTISCHES SCORING
     let score = 0;
-    score += publicResultsCount * 5;
+
+    if (publicResultsCount >= 1_000_000) score += 45;
+    else if (publicResultsCount >= 100_000) score += 35;
+    else if (publicResultsCount >= 10_000) score += 25;
+    else if (publicResultsCount >= 1_000) score += 15;
+    else if (publicResultsCount >= 100) score += 8;
+    else if (publicResultsCount > 0) score += 3;
+
     score += socialProfilesCount * 10;
     score += usernameExposureCount * 5;
     score += city ? 5 : 0;
@@ -120,7 +142,7 @@ export async function POST(request: Request) {
       findings: [
         {
           label: "Public web results",
-          value: `${publicResultsCount} search results detected`,
+          value: `${publicResultsCount.toLocaleString()} search results detected`,
         },
         {
           label: "Possible social profiles",
@@ -143,14 +165,13 @@ export async function POST(request: Request) {
         riskLevel,
         publicResultsCount,
         socialProfilesCount,
-        emailLeakCount,
         usernameExposureCount,
       }),
       recommendations: [
         {
           title: "Reduce public visibility",
           description:
-            "Limit personal data exposure across profiles and search results.",
+            "Limit personal data exposure across profiles and search engines.",
         },
         {
           title: "Use unique usernames",
