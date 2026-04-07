@@ -106,7 +106,7 @@ export async function POST(request: Request) {
 
     const socialProfilesCount = username ? 2 : publicResultsCount > 1000 ? 2 : 1;
     const usernameExposureCount = username ? 2 : 0;
-    const emailLeakCount = email ? 0 : 0;
+    const emailLeakCount: number = email ? 0 : 0;
     const exactNameMatches = publicResultsCount > 0 ? Math.min(6, Math.max(1, Math.round(publicResultsCount / 50000))) : 0;
 
     let score = 0;
