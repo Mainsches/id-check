@@ -35,12 +35,12 @@ const EMPTY_SERP_RESPONSE: SerpResponse = {
 
 const PLATFORM_CONFIG: PlatformConfig[] = [
   { key: "linkedin", label: "LinkedIn", domain: "linkedin.com", riskWeight: 2 },
-  { key: "instagram", label: "Instagram", domain: "instagram.com", riskWeight: 3 },
-  { key: "facebook", label: "Facebook", domain: "facebook.com", riskWeight: 3 },
-  { key: "tiktok", label: "TikTok", domain: "tiktok.com", riskWeight: 3 },
-  { key: "x", label: "X / Twitter", domain: "x.com", riskWeight: 2 },
-  { key: "github", label: "GitHub", domain: "github.com", riskWeight: 2 },
-  { key: "reddit", label: "Reddit", domain: "reddit.com", riskWeight: 2 },
+  { key: "instagram", label: "Instagram", domain: "instagram.com", riskWeight: 2 },
+  { key: "facebook", label: "Facebook", domain: "facebook.com", riskWeight: 2 },
+  { key: "tiktok", label: "TikTok", domain: "tiktok.com", riskWeight: 2 },
+  { key: "x", label: "X / Twitter", domain: "x.com", riskWeight: 1 },
+  { key: "github", label: "GitHub", domain: "github.com", riskWeight: 1 },
+  { key: "reddit", label: "Reddit", domain: "reddit.com", riskWeight: 1 },
 ];
 
 const DIRECTORY_DOMAINS = [
@@ -166,15 +166,31 @@ function estimateVisibilityScore(totalEstimatedResults: number): number {
   return 1;
 }
 
-function countStrongExactMatches(results: SerpOrganicResult[], fullName: string) {
-  let count = 0;
+function countStrongExactMatches(
+  results: SerpOrganicResult[],
+  fullName: string,
+  city: string
+) {
   const target = normalize(fullName);
+  let count = 0;
 
   for (const result of results) {
     const title = normalize(result.title || "");
     const snippet = normalize(result.snippet || "");
+    const link = normalize(result.link || "");
 
-    if (title.includes(target) || snippet.includes(target)) {
+    const titleHasName = title.includes(target);
+    const snippetHasName = snippet.includes(target);
+    const linkHasName = link.includes(target.replace(/\s+/g, "-")) || link.includes(target.replace(/\s+/g, ""));
+
+    const strongNameMatch =
+      (titleHasName && snippetHasName) ||
+      (titleHasName && linkHasName) ||
+      (snippetHasName && linkHasName);
+
+    const citySupport = city ? includesCity(result, city) : false;
+
+    if (strongNameMatch || (titleHasName && citySupport)) {
       count += 1;
     }
   }
@@ -240,8 +256,9 @@ function getPlatformSignalStrength(params: {
   results: SerpOrganicResult[];
   fullName: string;
   username: string;
+  city: string;
 }) {
-  const { platformDomain, results, fullName, username } = params;
+  const { platformDomain, results, fullName, username, city } = params;
 
   let strength = 0;
 
@@ -250,8 +267,10 @@ function getPlatformSignalStrength(params: {
 
     const exactName = includesExactName(result, fullName);
     const userHit = includesUsername(result, username);
+    const cityHit = includesCity(result, city);
 
-    if (exactName && userHit) {
+    // Stark nur wenn wirklich korrelierbar
+    if ((exactName && userHit) || (exactName && cityHit && !!city)) {
       strength = Math.max(strength, 2);
     } else if (exactName || userHit) {
       strength = Math.max(strength, 1);
@@ -288,7 +307,7 @@ function buildRecommendations(params: {
     recommendations.push({
       title: "Remove directory listings",
       description:
-        "Directory and people-search sites create the strongest identity-theft risk. Prioritize opt-out and removal requests there first.",
+        "Directory and people-search sites are one of the clearest identity-theft risk indicators. Prioritize opt-out and removal there first.",
     });
   }
 
@@ -296,15 +315,15 @@ function buildRecommendations(params: {
     recommendations.push({
       title: "Stop reusing usernames",
       description:
-        "Use different usernames across platforms to make cross-platform identity correlation more difficult.",
+        "Use different usernames across platforms to reduce cross-platform identity correlation.",
     });
   }
 
   if (platformSignalsStrong > 1) {
     recommendations.push({
-      title: "Reduce profile overlap",
+      title: "Reduce cross-platform overlap",
       description:
-        "Avoid repeating the same full name, bio details, city, and links across multiple social platforms.",
+        "Avoid repeating the same full name, location, profile details, and external links across multiple platforms.",
     });
   }
 
@@ -312,7 +331,7 @@ function buildRecommendations(params: {
     recommendations.push({
       title: "Hide location details",
       description:
-        "Reduce searchable combinations of full name plus city or region whenever possible.",
+        "Reduce searchable combinations of your full name and city or region when possible.",
     });
   }
 
@@ -320,15 +339,15 @@ function buildRecommendations(params: {
     recommendations.push({
       title: "Audit public search results",
       description:
-        "Review the most visible search results for old profiles, outdated pages, and unnecessary personal details.",
+        "Review visible search results for old profiles, forgotten pages, and unnecessary identity details.",
     });
   }
 
   if (recommendations.length < 3) {
     recommendations.push({
-      title: "Keep monitoring exposure",
+      title: "Monitor your exposure",
       description:
-        "Recheck regularly, especially after opening new accounts or publishing public profile changes.",
+        "Repeat the scan regularly after creating new public accounts or changing profile information.",
     });
   }
 
@@ -367,7 +386,7 @@ function buildSummary(params: {
       ? "moderate"
       : "currently limited";
 
-  return `${fullName}'s identity-theft risk appears ${tone}. Visibility alone is not treated as high risk: the score focuses more on correlatable signals such as directory listings, repeated usernames, exact identity matches, and cross-platform profile overlap. We found approximately ${totalEstimatedResults.toLocaleString()} indexed search results, a visibility score of ${visibilityScore}/10, ${platformSignalsStrong} strong platform signal${platformSignalsStrong === 1 ? "" : "s"}, ${platformSignalsWeak} weak platform signal${platformSignalsWeak === 1 ? "" : "s"}, ${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"}, ${usernameExposureCount} username-linked signal${usernameExposureCount === 1 ? "" : "s"}, ${exactNameMatches} exact-name match${exactNameMatches === 1 ? "" : "es"}, and ${cityMentions} city-linked signal${cityMentions === 1 ? "" : "s"}.`;
+  return `${fullName}'s identity-theft risk appears ${tone}. Visibility alone is not treated as high risk. This score weighs directory listings, repeated usernames, exact identity matches, city-linked correlation, and cross-platform overlap more strongly than raw search volume. We found approximately ${totalEstimatedResults.toLocaleString()} indexed results, a visibility weight of ${visibilityScore}/10, ${platformSignalsStrong} strong platform signal${platformSignalsStrong === 1 ? "" : "s"}, ${platformSignalsWeak} weak platform signal${platformSignalsWeak === 1 ? "" : "s"}, ${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"}, ${usernameExposureCount} username-linked signal${usernameExposureCount === 1 ? "" : "s"}, ${exactNameMatches} exact-name match${exactNameMatches === 1 ? "" : "es"}, and ${cityMentions} city-linked signal${cityMentions === 1 ? "" : "s"}.`;
 }
 
 export async function POST(request: Request) {
@@ -462,6 +481,7 @@ export async function POST(request: Request) {
         results,
         fullName,
         username,
+        city,
       });
 
       return {
@@ -480,16 +500,16 @@ export async function POST(request: Request) {
 
     const weightedPlatformRisk = perPlatformFindings.reduce((sum, platform) => {
       if (platform.strength >= 2) return sum + platform.riskWeight * 2;
-      if (platform.strength === 1) return sum + platform.riskWeight;
+      if (platform.strength === 1) return sum + platform.riskWeight * 0.5;
       return sum;
     }, 0);
 
     const exactNameMatches = Math.min(
-      countStrongExactMatches(identityResults, fullName),
-      6
+      countStrongExactMatches(identityResults, fullName, city),
+      4
     );
 
-    const cityMentions = Math.min(countCityMentions(identityResults, city), 5);
+    const cityMentions = Math.min(countCityMentions(identityResults, city), 4);
 
     const directoryListingsCount = Math.min(
       countDirectorySignals(directoryResults, fullName, city),
@@ -508,27 +528,37 @@ export async function POST(request: Request) {
     // Visibility contributes only a little
     score += visibilityScore;
 
-    // Identity-theft risk indicators contribute much more
+    // Hard identity-theft indicators
     score += weightedPlatformRisk;
     score += directoryListingsCount * 15;
     score += usernameExposureCount * 10;
     score += exactNameMatches * 2;
-    score += cityMentions > 0 ? Math.min(cityMentions * 2, 6) : 0;
+    score += cityMentions > 0 ? Math.min(cityMentions * 1.5, 4) : 0;
 
-    // Optional data slightly raises correlation potential
-    if (city) score += 2;
+    if (city) score += 1;
     if (email) score += 2;
     score += emailLeakCount * 20;
 
-    // Fame dampener
+    // Common-name / fame dampener
     if (
-      totalEstimatedResults >= 1_000_000 &&
+      totalEstimatedResults >= 100_000 &&
       directoryListingsCount === 0 &&
       usernameExposureCount === 0 &&
-      platformSignalsStrong <= 2 &&
+      platformSignalsStrong <= 1 &&
       !username
     ) {
-      score -= 12;
+      score -= 10;
+    }
+
+    // Generic visibility dampener for ordinary users
+    if (
+      totalEstimatedResults >= 1_000 &&
+      directoryListingsCount === 0 &&
+      usernameExposureCount === 0 &&
+      platformSignalsStrong === 0 &&
+      platformSignalsWeak <= 3
+    ) {
+      score -= 6;
     }
 
     const riskScore = Math.round(clamp(score, 5, 100));
@@ -556,24 +586,18 @@ export async function POST(request: Request) {
         },
         {
           label: "Directory / people-search pages",
-          value: `${directoryListingsCount} directory signal${
-            directoryListingsCount === 1 ? "" : "s"
-          } detected`,
+          value: `${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"} detected`,
         },
         {
           label: "Username reuse exposure",
           value:
             usernameExposureCount > 0
-              ? `${usernameExposureCount} username-linked result${
-                  usernameExposureCount === 1 ? "" : "s"
-                } found`
+              ? `${usernameExposureCount} username-linked result${usernameExposureCount === 1 ? "" : "s"} found`
               : "No username-based exposure checked",
         },
         {
           label: "Exact identity matches",
-          value: `${exactNameMatches} strong exact-name match${
-            exactNameMatches === 1 ? "" : "es"
-          } identified`,
+          value: `${exactNameMatches} strong exact-name match${exactNameMatches === 1 ? "" : "es"} identified`,
         },
         ...perPlatformFindings.map((platform) => ({
           label: platform.label,
