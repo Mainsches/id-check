@@ -32,21 +32,35 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     title: "Low identity risk",
     subtitle:
       "Only limited identity-theft signals were found from the currently visible data.",
-      accent: "risk-low",
-      mood: riskScore <= 15 ? "Low concern" : "Relatively safe",
-    };
+    accent: "risk-low",
+    mood: riskScore <= 15 ? "Low concern" : "Relatively safe",
+  };
 }
 
 function getFindingTone(label: string, value: string) {
   const text = `${label} ${value}`.toLowerCase();
 
+  if (text.includes("not checked")) return "finding-muted";
+  if (text.includes("no directory signals")) return "finding-cool";
+  if (text.includes("no username-linked signals")) return "finding-cool";
+  if (label === "Identity theft risk core") {
+    if (text.includes("/100")) {
+      const match = text.match(/^(\d+)/);
+      const score = match ? Number(match[1]) : 0;
+      if (score >= 70) return "finding-hot";
+      if (score >= 40) return "finding-warm";
+      return "finding-cool";
+    }
+  }
+
   if (
     text.includes("directory") ||
     text.includes("people-search") ||
-    text.includes("username") ||
-    text.includes("risk core")
+    text.includes("username")
   ) {
-    return "finding-hot";
+    return text.includes("0 ") || text.includes("no ")
+      ? "finding-cool"
+      : "finding-hot";
   }
 
   if (
@@ -56,6 +70,11 @@ function getFindingTone(label: string, value: string) {
   ) {
     return "finding-warm";
   }
+
+  if (text.includes("strong profile signal")) return "finding-hot";
+  if (text.includes("possible profile signal")) return "finding-warm";
+  if (text.includes("not enough evidence")) return "finding-muted";
+  if (text.includes("no strong match")) return "finding-muted";
 
   return "finding-cool";
 }
@@ -187,20 +206,20 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           </div>
 
           <div className="findings-block">
-            {coreFindings.map((finding) => (
-              <div
-                key={finding.label}
-                className={`item-row item-row-card item-row-tight item-row-accent ${getFindingTone(
-                  finding.label,
-                  finding.value
-                )}`}
-              >
-                <div className="item-row-top">
-                  <span>{finding.label}</span>
+            {coreFindings.map((finding) => {
+              const tone = getFindingTone(finding.label, finding.value);
+              return (
+                <div
+                  key={finding.label}
+                  className={`item-row item-row-card item-row-tight item-row-accent ${tone}`}
+                >
+                  <div className="item-row-top">
+                    <span>{finding.label}</span>
+                  </div>
+                  <strong>{finding.value}</strong>
                 </div>
-                <strong>{finding.value}</strong>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {platformFindings.length > 0 && (
@@ -211,20 +230,20 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
               </div>
 
               <div className="platform-grid">
-                {platformFindings.map((finding) => (
-                  <div
-                    key={finding.label}
-                    className={`platform-card item-row-accent ${getFindingTone(
-                      finding.label,
-                      finding.value
-                    )}`}
-                  >
-                    <div className="platform-card-top">
-                      <span className="platform-name">{finding.label}</span>
+                {platformFindings.map((finding) => {
+                  const tone = getFindingTone(finding.label, finding.value);
+                  return (
+                    <div
+                      key={finding.label}
+                      className={`platform-card item-row-accent ${tone}`}
+                    >
+                      <div className="platform-card-top">
+                        <span className="platform-name">{finding.label}</span>
+                      </div>
+                      <strong className="platform-value">{finding.value}</strong>
                     </div>
-                    <strong className="platform-value">{finding.value}</strong>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

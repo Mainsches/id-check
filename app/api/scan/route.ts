@@ -266,6 +266,11 @@ function countUsernameExposure(
   return matchedDomains.size;
 }
 
+function shorten(text: string, maxLength = 72) {
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength - 1)}…`;
+}
+
 function assessPlatformSignal(params: {
   platform: PlatformConfig;
   results: SerpOrganicResult[];
@@ -283,6 +288,8 @@ function assessPlatformSignal(params: {
   let usernameHit = false;
   let cityHit = false;
   let profileLikeUrlHit = false;
+
+  let bestHint = "";
 
   for (const result of results) {
     if (!isFromDomain(result, platform.domain)) continue;
@@ -311,6 +318,11 @@ function assessPlatformSignal(params: {
     if (cityMatch) cityHit = true;
     if (profileLikeUrl) profileLikeUrlHit = true;
 
+    const hintSource = result.title || result.link || result.snippet || "";
+    if (!bestHint && hintSource) {
+      bestHint = shorten(hintSource);
+    }
+
     if (
       (exactName && userHit) ||
       (exactName && cityMatch && !!city) ||
@@ -330,27 +342,27 @@ function assessPlatformSignal(params: {
   if (strongHits >= 1) strength = 2;
   else if (weakHits >= 2) strength = 1;
 
-  let detail = "no strong match on indexed results";
+  let detail = "not enough evidence on indexed results";
 
   if (strength === 2) {
     if (exactNameHit && usernameHit) {
-      detail = "strong profile signal · exact name + username correlation";
+      detail = `strong profile signal · exact name + username correlation${bestHint ? ` · ${bestHint}` : ""}`;
     } else if (exactNameHit && cityHit) {
-      detail = "strong profile signal · exact name + city correlation";
+      detail = `strong profile signal · exact name + city correlation${bestHint ? ` · ${bestHint}` : ""}`;
     } else if (exactNameHit && profileLikeUrlHit) {
-      detail = "strong profile signal · exact name + profile-like URL";
+      detail = `strong profile signal · exact name + profile-like URL${bestHint ? ` · ${bestHint}` : ""}`;
     } else {
-      detail = "strong profile signal · multiple identity indicators";
+      detail = `strong profile signal · multiple identity indicators${bestHint ? ` · ${bestHint}` : ""}`;
     }
   } else if (strength === 1) {
     if (exactNameHit && profileLikeUrlHit) {
-      detail = "possible profile signal · exact name on profile-like result";
+      detail = `possible profile signal · exact name on profile-like result${bestHint ? ` · ${bestHint}` : ""}`;
     } else if (usernameHit) {
-      detail = "possible profile signal · username-like match found";
+      detail = `possible profile signal · username-like match found${bestHint ? ` · ${bestHint}` : ""}`;
     } else if (exactNameHit) {
-      detail = "possible profile signal · name-like indexed result found";
+      detail = `possible profile signal · name-like indexed result found${bestHint ? ` · ${bestHint}` : ""}`;
     } else {
-      detail = "possible profile signal · weak indexed match";
+      detail = `possible profile signal · weak indexed match${bestHint ? ` · ${bestHint}` : ""}`;
     }
   }
 
@@ -639,6 +651,18 @@ export async function POST(request: Request) {
       visibilityScore,
     });
 
+    const directoryValue =
+      directoryListingsCount > 0
+        ? `${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"} detected`
+        : "no directory signals detected";
+
+    const usernameValue =
+      usernameExposureCount > 0
+        ? `${usernameExposureCount} username-linked result${usernameExposureCount === 1 ? "" : "s"} found`
+        : username
+        ? "no username-linked signals detected"
+        : "not checked (no username provided)";
+
     const result: ScanResponse = {
       riskScore,
       riskLevel,
@@ -653,14 +677,11 @@ export async function POST(request: Request) {
         },
         {
           label: "Directory / people-search pages",
-          value: `${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"} detected`,
+          value: directoryValue,
         },
         {
           label: "Username reuse exposure",
-          value:
-            usernameExposureCount > 0
-              ? `${usernameExposureCount} username-linked result${usernameExposureCount === 1 ? "" : "s"} found`
-              : "No username-based exposure checked",
+          value: usernameValue,
         },
         {
           label: "Exact identity matches",

@@ -946,3 +946,111 @@ input {
     grid-template-columns: 1fr;
   }
 }
+
+.findings-block {
+  display: grid;
+  gap: 8px;
+}
+
+.item-row-accent {
+  position: relative;
+  border-width: 1px;
+  border-style: solid;
+}
+
+.item-row-accent.finding-hot {
+  border-color: rgba(255, 107, 115, 0.42);
+  box-shadow:
+    inset 3px 0 0 var(--risk-high),
+    0 0 0 1px rgba(255, 107, 115, 0.06);
+}
+
+.item-row-accent.finding-warm {
+  border-color: rgba(255, 213, 74, 0.42);
+  box-shadow:
+    inset 3px 0 0 var(--risk-medium),
+    0 0 0 1px rgba(255, 213, 74, 0.06);
+}
+
+.item-row-accent.finding-cool {
+  border-color: rgba(67, 227, 139, 0.42);
+  box-shadow:
+    inset 3px 0 0 var(--risk-low),
+    0 0 0 1px rgba(67, 227, 139, 0.06);
+}
+
+.item-row-accent.finding-muted {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 3px 0 0 rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.item-row-accent.finding-muted strong,
+.item-row-accent.finding-muted .platform-value {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.platform-section {
+  margin-top: 14px;
+}
+
+.platform-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.platform-section-head h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--text-soft);
+  letter-spacing: -0.01em;
+}
+
+.platform-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.platform-card {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.035), transparent 40%);
+  border: 1px solid var(--line);
+  transition: all 0.2s ease;
+}
+
+.platform-card:hover {
+  transform: translateY(-2px);
+}
+
+.platform-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.platform-name {
+  font-size: 0.9rem;
+  color: var(--text-faint);
+}
+
+.platform-value {
+  display: block;
+  font-size: 0.96rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+@media (max-width: 1180px) {
+  .platform-grid {
+    grid-template-columns: 1fr;
+  }
+}
