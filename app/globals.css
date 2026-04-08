@@ -578,3 +578,234 @@ input {
     line-height: 1;
   }
 }
+
+/* =========================
+   BASE (UNVERÄNDERT)
+========================= */
+
+:root {
+  --bg: #050505;
+  --bg-soft: #0d0d0d;
+  --panel: rgba(255, 255, 255, 0.04);
+  --panel-strong: rgba(255, 255, 255, 0.06);
+  --line: rgba(255, 255, 255, 0.1);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #ffffff;
+  --text-soft: rgba(255, 255, 255, 0.72);
+  --text-faint: rgba(255, 255, 255, 0.52);
+  --shadow: 0 20px 80px rgba(0, 0, 0, 0.45);
+  --radius-xl: 32px;
+  --radius-lg: 22px;
+  --radius-md: 16px;
+  --transition: 220ms ease;
+
+  --risk-low: #4ade80;
+  --risk-low-soft: rgba(74, 222, 128, 0.18);
+
+  --risk-medium: #facc15;
+  --risk-medium-soft: rgba(250, 204, 21, 0.18);
+
+  --risk-high: #f87171;
+  --risk-high-soft: rgba(248, 113, 113, 0.2);
+}
+
+/* =========================
+   ✨ NEU: VISUAL UPGRADE
+========================= */
+
+/* Glow Background im Result */
+.result-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(120px);
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.result-orb-one {
+  width: 280px;
+  height: 280px;
+  top: -80px;
+  left: -80px;
+}
+
+.result-orb-two {
+  width: 320px;
+  height: 320px;
+  bottom: -120px;
+  right: -120px;
+}
+
+.result-shell.risk-low .result-orb {
+  background: var(--risk-low);
+}
+
+.result-shell.risk-medium .result-orb {
+  background: var(--risk-medium);
+}
+
+.result-shell.risk-high .result-orb {
+  background: var(--risk-high);
+}
+
+/* =========================
+   SCORE META UPGRADE
+========================= */
+
+.score-meta-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.score-headline {
+  margin: 4px 0 10px 0;
+  font-size: 1.4rem;
+  letter-spacing: -0.02em;
+}
+
+/* =========================
+   🔥 SIGNAL CHIPS
+========================= */
+
+.signal-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.signal-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-soft);
+  transition: all 0.2s ease;
+}
+
+.signal-chip:hover {
+  transform: translateY(-1px);
+}
+
+.signal-chip-main {
+  font-weight: 600;
+}
+
+/* Farben */
+.finding-hot {
+  color: var(--risk-high);
+  background: var(--risk-high-soft);
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.finding-warm {
+  color: var(--risk-medium);
+  background: var(--risk-medium-soft);
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+.finding-cool {
+  color: var(--risk-low);
+  background: var(--risk-low-soft);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+/* =========================
+   FINDINGS CARDS
+========================= */
+
+.item-row-card {
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
+}
+
+.item-row-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.item-row-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.finding-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.finding-dot.finding-hot {
+  background: var(--risk-high);
+}
+
+.finding-dot.finding-warm {
+  background: var(--risk-medium);
+}
+
+.finding-dot.finding-cool {
+  background: var(--risk-low);
+}
+
+/* =========================
+   PANEL HEADER
+========================= */
+
+.panel-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.panel-mini-tag {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+/* =========================
+   RECOMMENDATIONS UPGRADE
+========================= */
+
+.recommendation-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.recommendation-index {
+  font-size: 1.4rem;
+  font-weight: 800;
+  opacity: 0.2;
+  min-width: 28px;
+}
+
+.recommendation-content h4 {
+  margin-bottom: 6px;
+}
+
+/* =========================
+   SCORE BAR META
+========================= */
+
+.score-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+
+.score-bar-label-soft {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
