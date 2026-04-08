@@ -98,6 +98,12 @@ function textOf(result: SerpOrganicResult) {
   );
 }
 
+function cleanNameForUrl(name: string) {
+  return normalize(name)
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-");
+}
+
 function includesExactName(result: SerpOrganicResult, fullName: string) {
   return textOf(result).includes(normalize(fullName));
 }
@@ -181,7 +187,9 @@ function countStrongExactMatches(
 
     const titleHasName = title.includes(target);
     const snippetHasName = snippet.includes(target);
-    const linkHasName = link.includes(target.replace(/\s+/g, "-")) || link.includes(target.replace(/\s+/g, ""));
+    const linkHasName =
+      link.includes(target.replace(/\s+/g, "-")) ||
+      link.includes(target.replace(/\s+/g, ""));
 
     const strongNameMatch =
       (titleHasName && snippetHasName) ||
@@ -260,24 +268,48 @@ function getPlatformSignalStrength(params: {
 }) {
   const { platformDomain, results, fullName, username, city } = params;
 
-  let strength = 0;
+  const cleanedName = cleanNameForUrl(fullName);
+  let weakHits = 0;
+  let strongHits = 0;
 
   for (const result of results) {
     if (!isFromDomain(result, platformDomain)) continue;
 
-    const exactName = includesExactName(result, fullName);
-    const userHit = includesUsername(result, username);
-    const cityHit = includesCity(result, city);
+    const title = normalize(result.title || "");
+    const snippet = normalize(result.snippet || "");
+    const link = normalize(result.link || "");
+    const fullText = textOf(result);
 
-    // Stark nur wenn wirklich korrelierbar
-    if ((exactName && userHit) || (exactName && cityHit && !!city)) {
-      strength = Math.max(strength, 2);
-    } else if (exactName || userHit) {
-      strength = Math.max(strength, 1);
+    const exactName = fullText.includes(normalize(fullName));
+    const userHit = username ? fullText.includes(normalize(username)) : false;
+    const cityHit = city ? fullText.includes(normalize(city)) : false;
+    const urlNameHit = cleanedName ? link.includes(cleanedName) : false;
+
+    // Stark:
+    // - voller Name + Username
+    // - voller Name + Stadt
+    // - Name im Titel + nameähnliche URL
+    if (
+      (exactName && userHit) ||
+      (exactName && cityHit && !!city) ||
+      ((title.includes(normalize(fullName)) || snippet.includes(normalize(fullName))) &&
+        urlNameHit)
+    ) {
+      strongHits += 1;
+      continue;
+    }
+
+    // Schwach:
+    // - nur voller Name
+    // - nur Username
+    if (exactName || userHit || urlNameHit) {
+      weakHits += 1;
     }
   }
 
-  return strength;
+  if (strongHits >= 1) return 2;
+  if (weakHits >= 2) return 1;
+  return 0;
 }
 
 function platformSignalLabel(strength: number) {
@@ -323,7 +355,7 @@ function buildRecommendations(params: {
     recommendations.push({
       title: "Reduce cross-platform overlap",
       description:
-        "Avoid repeating the same full name, location, profile details, and external links across multiple platforms.",
+        "Avoid repeating the same full name, location, profile details, and links across multiple platforms.",
     });
   }
 
@@ -525,10 +557,7 @@ export async function POST(request: Request) {
 
     let score = 0;
 
-    // Visibility contributes only a little
     score += visibilityScore;
-
-    // Hard identity-theft indicators
     score += weightedPlatformRisk;
     score += directoryListingsCount * 15;
     score += usernameExposureCount * 10;
@@ -539,7 +568,6 @@ export async function POST(request: Request) {
     if (email) score += 2;
     score += emailLeakCount * 20;
 
-    // Common-name / fame dampener
     if (
       totalEstimatedResults >= 100_000 &&
       directoryListingsCount === 0 &&
@@ -550,7 +578,6 @@ export async function POST(request: Request) {
       score -= 10;
     }
 
-    // Generic visibility dampener for ordinary users
     if (
       totalEstimatedResults >= 1_000 &&
       directoryListingsCount === 0 &&
