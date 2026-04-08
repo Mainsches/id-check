@@ -28,6 +28,13 @@ type PlatformConfig = {
   riskWeight: number;
 };
 
+type PlatformAssessment = {
+  label: string;
+  strength: number;
+  riskWeight: number;
+  value: string;
+};
+
 const EMPTY_SERP_RESPONSE: SerpResponse = {
   search_information: { total_results: 0 },
   organic_results: [],
@@ -259,21 +266,26 @@ function countUsernameExposure(
   return matchedDomains.size;
 }
 
-function getPlatformSignalStrength(params: {
-  platformDomain: string;
+function assessPlatformSignal(params: {
+  platform: PlatformConfig;
   results: SerpOrganicResult[];
   fullName: string;
   username: string;
   city: string;
-}) {
-  const { platformDomain, results, fullName, username, city } = params;
+}): PlatformAssessment {
+  const { platform, results, fullName, username, city } = params;
 
   const cleanedName = cleanNameForUrl(fullName);
   let weakHits = 0;
   let strongHits = 0;
 
+  let exactNameHit = false;
+  let usernameHit = false;
+  let cityHit = false;
+  let profileLikeUrlHit = false;
+
   for (const result of results) {
-    if (!isFromDomain(result, platformDomain)) continue;
+    if (!isFromDomain(result, platform.domain)) continue;
 
     const title = normalize(result.title || "");
     const snippet = normalize(result.snippet || "");
@@ -282,40 +294,72 @@ function getPlatformSignalStrength(params: {
 
     const exactName = fullText.includes(normalize(fullName));
     const userHit = username ? fullText.includes(normalize(username)) : false;
-    const cityHit = city ? fullText.includes(normalize(city)) : false;
+    const cityMatch = city ? fullText.includes(normalize(city)) : false;
     const urlNameHit = cleanedName ? link.includes(cleanedName) : false;
 
-    // Stark:
-    // - voller Name + Username
-    // - voller Name + Stadt
-    // - Name im Titel + nameähnliche URL
+    const profileLikeUrl =
+      link.includes("/in/") ||
+      link.includes("/@") ||
+      link.includes("/user/") ||
+      link.includes("/users/") ||
+      link.includes("/profile/") ||
+      link.includes("/people/") ||
+      urlNameHit;
+
+    if (exactName) exactNameHit = true;
+    if (userHit) usernameHit = true;
+    if (cityMatch) cityHit = true;
+    if (profileLikeUrl) profileLikeUrlHit = true;
+
     if (
       (exactName && userHit) ||
-      (exactName && cityHit && !!city) ||
+      (exactName && cityMatch && !!city) ||
       ((title.includes(normalize(fullName)) || snippet.includes(normalize(fullName))) &&
-        urlNameHit)
+        profileLikeUrl)
     ) {
       strongHits += 1;
       continue;
     }
 
-    // Schwach:
-    // - nur voller Name
-    // - nur Username
-    if (exactName || userHit || urlNameHit) {
+    if (exactName || userHit || profileLikeUrl) {
       weakHits += 1;
     }
   }
 
-  if (strongHits >= 1) return 2;
-  if (weakHits >= 2) return 1;
-  return 0;
-}
+  let strength = 0;
+  if (strongHits >= 1) strength = 2;
+  else if (weakHits >= 2) strength = 1;
 
-function platformSignalLabel(strength: number) {
-  if (strength >= 2) return "strong profile signal detected";
-  if (strength >= 1) return "possible profile signal detected";
-  return "no strong signal detected";
+  let detail = "no strong match on indexed results";
+
+  if (strength === 2) {
+    if (exactNameHit && usernameHit) {
+      detail = "strong profile signal · exact name + username correlation";
+    } else if (exactNameHit && cityHit) {
+      detail = "strong profile signal · exact name + city correlation";
+    } else if (exactNameHit && profileLikeUrlHit) {
+      detail = "strong profile signal · exact name + profile-like URL";
+    } else {
+      detail = "strong profile signal · multiple identity indicators";
+    }
+  } else if (strength === 1) {
+    if (exactNameHit && profileLikeUrlHit) {
+      detail = "possible profile signal · exact name on profile-like result";
+    } else if (usernameHit) {
+      detail = "possible profile signal · username-like match found";
+    } else if (exactNameHit) {
+      detail = "possible profile signal · name-like indexed result found";
+    } else {
+      detail = "possible profile signal · weak indexed match";
+    }
+  }
+
+  return {
+    label: platform.label,
+    strength,
+    riskWeight: platform.riskWeight,
+    value: detail,
+  };
 }
 
 function buildRecommendations(params: {
@@ -500,28 +544,24 @@ export async function POST(request: Request) {
       directoryResponse.organic_results || [],
     ]);
 
-    const perPlatformFindings = PLATFORM_CONFIG.map((platform, index) => {
-      const response = platformResponses[index] || EMPTY_SERP_RESPONSE;
-      const results = dedupeResults([
-        response.organic_results || [],
-        identityResults,
-        usernameResults,
-      ]);
+    const perPlatformFindings: PlatformAssessment[] = PLATFORM_CONFIG.map(
+      (platform, index) => {
+        const response = platformResponses[index] || EMPTY_SERP_RESPONSE;
+        const results = dedupeResults([
+          response.organic_results || [],
+          identityResults,
+          usernameResults,
+        ]);
 
-      const strength = getPlatformSignalStrength({
-        platformDomain: platform.domain,
-        results,
-        fullName,
-        username,
-        city,
-      });
-
-      return {
-        label: platform.label,
-        strength,
-        riskWeight: platform.riskWeight,
-      };
-    });
+        return assessPlatformSignal({
+          platform,
+          results,
+          fullName,
+          username,
+          city,
+        });
+      }
+    );
 
     const platformSignalsStrong = perPlatformFindings.filter(
       (p) => p.strength >= 2
@@ -628,7 +668,7 @@ export async function POST(request: Request) {
         },
         ...perPlatformFindings.map((platform) => ({
           label: platform.label,
-          value: platformSignalLabel(platform.strength),
+          value: platform.value,
         })),
       ],
       aiSummary: buildSummary({

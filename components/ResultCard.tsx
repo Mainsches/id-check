@@ -32,9 +32,9 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     title: "Low identity risk",
     subtitle:
       "Only limited identity-theft signals were found from the currently visible data.",
-    accent: "risk-low",
-    mood: riskScore <= 15 ? "Low concern" : "Relatively safe",
-  };
+      accent: "risk-low",
+      mood: riskScore <= 15 ? "Low concern" : "Relatively safe",
+    };
 }
 
 function getFindingTone(label: string, value: string) {
@@ -79,6 +79,18 @@ function formatFindingShort(label: string) {
   return map[label] || label;
 }
 
+function isPlatformFinding(label: string) {
+  return [
+    "LinkedIn",
+    "Instagram",
+    "Facebook",
+    "TikTok",
+    "X / Twitter",
+    "GitHub",
+    "Reddit",
+  ].includes(label);
+}
+
 export default function ResultCard({ result, onReset }: ResultCardProps) {
   const riskClass =
     result.riskLevel === "High"
@@ -94,6 +106,9 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
   } as React.CSSProperties;
 
   const topChips = result.findings.slice(0, 5);
+
+  const coreFindings = result.findings.filter((item) => !isPlatformFinding(item.label));
+  const platformFindings = result.findings.filter((item) => isPlatformFinding(item.label));
 
   return (
     <section className={`result-shell result-shell-vnext fade-in ${riskClass}`}>
@@ -171,22 +186,48 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
             <span className="panel-mini-tag">Live breakdown</span>
           </div>
 
-          <ul className="item-list item-list-compact">
-            {result.findings.map((finding) => (
-              <li key={finding.label} className="item-row item-row-card item-row-tight">
+          <div className="findings-block">
+            {coreFindings.map((finding) => (
+              <div
+                key={finding.label}
+                className={`item-row item-row-card item-row-tight item-row-accent ${getFindingTone(
+                  finding.label,
+                  finding.value
+                )}`}
+              >
                 <div className="item-row-top">
                   <span>{finding.label}</span>
-                  <span
-                    className={`finding-dot ${getFindingTone(
+                </div>
+                <strong>{finding.value}</strong>
+              </div>
+            ))}
+          </div>
+
+          {platformFindings.length > 0 && (
+            <div className="platform-section">
+              <div className="platform-section-head">
+                <h4>Platform signals</h4>
+                <span className="panel-mini-tag">Per platform</span>
+              </div>
+
+              <div className="platform-grid">
+                {platformFindings.map((finding) => (
+                  <div
+                    key={finding.label}
+                    className={`platform-card item-row-accent ${getFindingTone(
                       finding.label,
                       finding.value
                     )}`}
-                  />
-                </div>
-                <strong>{finding.value}</strong>
-              </li>
-            ))}
-          </ul>
+                  >
+                    <div className="platform-card-top">
+                      <span className="platform-name">{finding.label}</span>
+                    </div>
+                    <strong className="platform-value">{finding.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="panel panel-summary panel-compact">
@@ -206,7 +247,10 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
           <div className="recommendation-grid recommendation-grid-compact">
             {result.recommendations.map((item, index) => (
-              <article key={item.title} className="recommendation-card recommendation-card-compact">
+              <article
+                key={item.title}
+                className="recommendation-card recommendation-card-compact"
+              >
                 <div className="recommendation-index">
                   {String(index + 1).padStart(2, "0")}
                 </div>
