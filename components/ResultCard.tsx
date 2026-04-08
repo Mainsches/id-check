@@ -24,7 +24,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
       <div className="result-header">
         <div>
           <span className="eyebrow">Scan result</span>
-          <h2>Your identity exposure overview</h2>
+          <h2>Your identity risk overview</h2>
         </div>
 
         <button className="secondary-button" onClick={onReset}>
@@ -35,17 +35,20 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
       <div className={`score-panel ${riskClass}`}>
         <div className={`score-circle ${riskClass}`} style={scoreStyle}>
           <div className="score-circle-inner">
+            {/* 🔥 IMMER WEISS */}
             <span className="score-number">{result.riskScore}</span>
             <span className="score-total">/100</span>
           </div>
         </div>
 
         <div className="score-meta">
-          <p className={`risk-badge ${riskClass}`}>{result.riskLevel} Risk</p>
+          <p className={`risk-badge ${riskClass}`}>
+            {result.riskLevel} Risk
+          </p>
+
           <p className="score-copy">
-            This score combines indexed search visibility, social profile
-            signals, exact-name matches, username correlation, and directory-style
-            exposure indicators.
+            This score reflects real-world identity risk signals such as public
+            data exposure, cross-platform correlation, and directory-style listings.
           </p>
 
           <div className="score-bar-wrap">
@@ -55,7 +58,10 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                 style={{ width: `${result.riskScore}%` }}
               />
             </div>
-            <span className="score-bar-label">{result.riskScore}% exposure score</span>
+
+            <span className="score-bar-label">
+              {result.riskScore}% identity risk
+            </span>
           </div>
         </div>
       </div>
@@ -74,7 +80,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
         </div>
 
         <div className="panel">
-          <h3>AI Summary</h3>
+          <h3>AI Risk Summary</h3>
           <p className="summary-text">{result.aiSummary}</p>
         </div>
       </div>
