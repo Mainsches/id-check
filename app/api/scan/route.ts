@@ -267,8 +267,14 @@ function countUsernameExposure(
 }
 
 function shorten(text: string, maxLength = 72) {
+  if (!text) return "";
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength - 1)}…`;
+}
+
+function sourceHint(result?: SerpOrganicResult) {
+  if (!result) return "";
+  return shorten(result.title || result.link || result.snippet || "", 68);
 }
 
 function assessPlatformSignal(params: {
@@ -289,7 +295,8 @@ function assessPlatformSignal(params: {
   let cityHit = false;
   let profileLikeUrlHit = false;
 
-  let bestHint = "";
+  let bestStrong: SerpOrganicResult | undefined;
+  let bestWeak: SerpOrganicResult | undefined;
 
   for (const result of results) {
     if (!isFromDomain(result, platform.domain)) continue;
@@ -318,23 +325,23 @@ function assessPlatformSignal(params: {
     if (cityMatch) cityHit = true;
     if (profileLikeUrl) profileLikeUrlHit = true;
 
-    const hintSource = result.title || result.link || result.snippet || "";
-    if (!bestHint && hintSource) {
-      bestHint = shorten(hintSource);
-    }
-
-    if (
+    const isStrong =
       (exactName && userHit) ||
       (exactName && cityMatch && !!city) ||
       ((title.includes(normalize(fullName)) || snippet.includes(normalize(fullName))) &&
-        profileLikeUrl)
-    ) {
+        profileLikeUrl);
+
+    const isWeak = exactName || userHit || profileLikeUrl;
+
+    if (isStrong) {
       strongHits += 1;
+      if (!bestStrong) bestStrong = result;
       continue;
     }
 
-    if (exactName || userHit || profileLikeUrl) {
+    if (isWeak) {
       weakHits += 1;
+      if (!bestWeak) bestWeak = result;
     }
   }
 
@@ -342,27 +349,30 @@ function assessPlatformSignal(params: {
   if (strongHits >= 1) strength = 2;
   else if (weakHits >= 2) strength = 1;
 
-  let detail = "not enough evidence on indexed results";
+  let detail = "no strong match on indexed results";
+  if (!bestWeak && !bestStrong) {
+    detail = "not enough evidence on indexed results";
+  }
 
   if (strength === 2) {
     if (exactNameHit && usernameHit) {
-      detail = `strong profile signal · exact name + username correlation${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `strong profile signal · confidence high · reason: exact name + username correlation${bestStrong ? ` · source: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && cityHit) {
-      detail = `strong profile signal · exact name + city correlation${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `strong profile signal · confidence high · reason: exact name + city correlation${bestStrong ? ` · source: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && profileLikeUrlHit) {
-      detail = `strong profile signal · exact name + profile-like URL${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `strong profile signal · confidence medium-high · reason: exact name + profile-like URL${bestStrong ? ` · source: ${sourceHint(bestStrong)}` : ""}`;
     } else {
-      detail = `strong profile signal · multiple identity indicators${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `strong profile signal · confidence medium-high · reason: multiple identity indicators${bestStrong ? ` · source: ${sourceHint(bestStrong)}` : ""}`;
     }
   } else if (strength === 1) {
     if (exactNameHit && profileLikeUrlHit) {
-      detail = `possible profile signal · exact name on profile-like result${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `possible profile signal · confidence medium · reason: exact name on profile-like result${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
     } else if (usernameHit) {
-      detail = `possible profile signal · username-like match found${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `possible profile signal · confidence medium-low · reason: username-like match found${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
     } else if (exactNameHit) {
-      detail = `possible profile signal · name-like indexed result found${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `possible profile signal · confidence low-medium · reason: name-like indexed result found${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
     } else {
-      detail = `possible profile signal · weak indexed match${bestHint ? ` · ${bestHint}` : ""}`;
+      detail = `possible profile signal · confidence low · reason: weak indexed match${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
     }
   }
 
