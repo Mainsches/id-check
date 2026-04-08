@@ -22,7 +22,7 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     return {
       title: "Moderate identity risk",
       subtitle:
-        "Some public signals can be connected, but the exposure is not extreme yet.",
+        "Some public signals can be connected, but the current exposure is not extreme.",
       accent: "risk-medium",
       mood: "Watch closely",
     };
@@ -43,21 +43,40 @@ function getFindingTone(label: string, value: string) {
   if (
     text.includes("directory") ||
     text.includes("people-search") ||
-    text.includes("username-linked") ||
-    text.includes("username reuse")
+    text.includes("username") ||
+    text.includes("risk core")
   ) {
     return "finding-hot";
   }
 
   if (
-    text.includes("social") ||
     text.includes("exact") ||
-    text.includes("identity")
+    text.includes("identity") ||
+    text.includes("visibility")
   ) {
     return "finding-warm";
   }
 
   return "finding-cool";
+}
+
+function formatFindingShort(label: string) {
+  const map: Record<string, string> = {
+    "Identity theft risk core": "Risk core",
+    "Public visibility": "Visibility",
+    "Directory / people-search pages": "Directory",
+    "Username reuse exposure": "Username",
+    "Exact identity matches": "Identity match",
+    LinkedIn: "LinkedIn",
+    Instagram: "Instagram",
+    Facebook: "Facebook",
+    TikTok: "TikTok",
+    "X / Twitter": "X",
+    GitHub: "GitHub",
+    Reddit: "Reddit",
+  };
+
+  return map[label] || label;
 }
 
 export default function ResultCard({ result, onReset }: ResultCardProps) {
@@ -74,14 +93,14 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
     ["--score-value" as string]: `${result.riskScore}%`,
   } as React.CSSProperties;
 
-  const topFindings = result.findings.slice(0, 3);
+  const topChips = result.findings.slice(0, 5);
 
   return (
-    <section className={`result-shell fade-in ${riskClass}`}>
+    <section className={`result-shell result-shell-vnext fade-in ${riskClass}`}>
       <div className="result-orb result-orb-one" />
       <div className="result-orb result-orb-two" />
 
-      <div className="result-header">
+      <div className="result-header result-header-vnext">
         <div>
           <span className="eyebrow">Scan result</span>
           <h2>Your identity risk overview</h2>
@@ -92,7 +111,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
         </button>
       </div>
 
-      <div className={`score-panel score-panel-v2 ${riskClass}`}>
+      <div className={`score-panel score-panel-vnext ${riskClass}`}>
         <div className={`score-circle ${riskClass}`} style={scoreStyle}>
           <div className="score-circle-inner">
             <span className="score-number">{result.riskScore}</span>
@@ -112,7 +131,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           <p className="score-copy">{riskMeta.subtitle}</p>
 
           <div className="signal-chip-row">
-            {topFindings.map((finding) => (
+            {topChips.map((finding) => (
               <span
                 key={finding.label}
                 className={`signal-chip ${getFindingTone(
@@ -120,7 +139,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                   finding.value
                 )}`}
               >
-                {finding.label}
+                {formatFindingShort(finding.label)}
               </span>
             ))}
           </div>
@@ -145,16 +164,16 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
         </div>
       </div>
 
-      <div className="results-grid">
-        <div className="panel panel-findings">
+      <div className="dashboard-grid">
+        <div className="panel panel-findings panel-compact">
           <div className="panel-header-row">
             <h3>Findings</h3>
             <span className="panel-mini-tag">Live breakdown</span>
           </div>
 
-          <ul className="item-list">
+          <ul className="item-list item-list-compact">
             {result.findings.map((finding) => (
-              <li key={finding.label} className="item-row item-row-card">
+              <li key={finding.label} className="item-row item-row-card item-row-tight">
                 <div className="item-row-top">
                   <span>{finding.label}</span>
                   <span
@@ -170,34 +189,34 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           </ul>
         </div>
 
-        <div className="panel panel-summary">
+        <div className="panel panel-summary panel-compact">
           <div className="panel-header-row">
             <h3>AI Risk Summary</h3>
             <span className="panel-mini-tag">Interpretation</span>
           </div>
 
-          <p className="summary-text">{result.aiSummary}</p>
-        </div>
-      </div>
-
-      <div className="panel panel-full panel-recommendations">
-        <div className="panel-header-row">
-          <h3>Recommendations</h3>
-          <span className="panel-mini-tag">Actionable next steps</span>
+          <p className="summary-text summary-text-compact">{result.aiSummary}</p>
         </div>
 
-        <div className="recommendation-grid">
-          {result.recommendations.map((item, index) => (
-            <article key={item.title} className="recommendation-card">
-              <div className="recommendation-index">
-                {String(index + 1).padStart(2, "0")}
-              </div>
-              <div className="recommendation-content">
-                <h4>{item.title}</h4>
-                <p>{item.description}</p>
-              </div>
-            </article>
-          ))}
+        <div className="panel panel-recommendations panel-compact">
+          <div className="panel-header-row">
+            <h3>Recommendations</h3>
+            <span className="panel-mini-tag">Actionable next steps</span>
+          </div>
+
+          <div className="recommendation-grid recommendation-grid-compact">
+            {result.recommendations.map((item, index) => (
+              <article key={item.title} className="recommendation-card recommendation-card-compact">
+                <div className="recommendation-index">
+                  {String(index + 1).padStart(2, "0")}
+                </div>
+                <div className="recommendation-content">
+                  <h4>{item.title}</h4>
+                  <p>{item.description}</p>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </section>
