@@ -90,6 +90,14 @@ function getDomain(url: string): string {
   }
 }
 
+function getPath(url: string): string {
+  try {
+    return new URL(url).pathname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 function parseTotalResults(value: number | string | undefined): number {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -277,6 +285,88 @@ function sourceHint(result?: SerpOrganicResult) {
   return shorten(result.title || result.link || result.snippet || "", 68);
 }
 
+function isProfileLikePath(platformKey: string, url: string) {
+  const path = getPath(url);
+
+  switch (platformKey) {
+    case "linkedin":
+      return path.startsWith("/in/") || path.startsWith("/pub/");
+    case "instagram":
+      return /^\/[a-z0-9._]+\/?$/.test(path) && !path.startsWith("/p/") && !path.startsWith("/reel/");
+    case "facebook":
+      return (
+        path.startsWith("/people/") ||
+        path.startsWith("/profile.php") ||
+        (/^\/[a-z0-9.\-]+\/?$/.test(path) &&
+          !path.startsWith("/watch") &&
+          !path.startsWith("/groups") &&
+          !path.startsWith("/events") &&
+          !path.startsWith("/posts") &&
+          !path.startsWith("/photo"))
+      );
+    case "tiktok":
+      return /^\/@[a-z0-9._]+\/?$/.test(path);
+    case "x":
+      return /^\/[a-z0-9_]+\/?$/.test(path) && !path.startsWith("/home") && !path.startsWith("/search");
+    case "github":
+      return /^\/[a-z0-9-]+\/?$/.test(path) && !path.startsWith("/topics") && !path.startsWith("/orgs");
+    case "reddit":
+      return path.startsWith("/user/") || path.startsWith("/u/");
+    default:
+      return false;
+  }
+}
+
+function isObviouslyNonProfileContext(platformKey: string, result: SerpOrganicResult) {
+  const text = textOf(result);
+  const path = getPath(result.link || "");
+
+  const genericBadWords = [
+    "video",
+    "videos",
+    "post",
+    "posts",
+    "comment",
+    "comments",
+    "episode",
+    "podcast",
+    "news",
+    "article",
+    "group",
+    "groups",
+    "forum",
+    "thread",
+    "subreddit",
+    "watch",
+    "playlist",
+  ];
+
+  const hasBadWord = genericBadWords.some((word) => text.includes(word));
+
+  switch (platformKey) {
+    case "facebook":
+      return (
+        path.startsWith("/groups") ||
+        path.startsWith("/events") ||
+        path.startsWith("/watch") ||
+        path.includes("/posts/") ||
+        hasBadWord
+      );
+    case "instagram":
+      return path.startsWith("/p/") || path.startsWith("/reel/") || hasBadWord;
+    case "tiktok":
+      return path.includes("/video/") || hasBadWord;
+    case "reddit":
+      return !path.startsWith("/user/") && !path.startsWith("/u/");
+    case "x":
+      return path.includes("/status/") || hasBadWord;
+    case "github":
+      return path.split("/").length > 3;
+    default:
+      return hasBadWord;
+  }
+}
+
 function assessPlatformSignal(params: {
   platform: PlatformConfig;
   results: SerpOrganicResult[];
@@ -312,26 +402,31 @@ function assessPlatformSignal(params: {
     const urlNameHit = cleanedName ? link.includes(cleanedName) : false;
 
     const profileLikeUrl =
-      link.includes("/in/") ||
-      link.includes("/@") ||
-      link.includes("/user/") ||
-      link.includes("/users/") ||
-      link.includes("/profile/") ||
-      link.includes("/people/") ||
-      urlNameHit;
+      isProfileLikePath(platform.key, result.link || "") || urlNameHit;
+
+    const nonProfileContext = isObviouslyNonProfileContext(platform.key, result);
 
     if (exactName) exactNameHit = true;
     if (userHit) usernameHit = true;
     if (cityMatch) cityHit = true;
     if (profileLikeUrl) profileLikeUrlHit = true;
 
-    const isStrong =
-      (exactName && userHit) ||
-      (exactName && cityMatch && !!city) ||
-      ((title.includes(normalize(fullName)) || snippet.includes(normalize(fullName))) &&
-        profileLikeUrl);
+    const strongEvidenceCount =
+      Number(exactName) +
+      Number(userHit) +
+      Number(cityMatch && !!city) +
+      Number(profileLikeUrl);
 
-    const isWeak = exactName || userHit || profileLikeUrl;
+    const isStrong =
+      !nonProfileContext &&
+      profileLikeUrl &&
+      strongEvidenceCount >= 2 &&
+      (exactName || userHit);
+
+    const isWeak =
+      !nonProfileContext &&
+      profileLikeUrl &&
+      (exactName || userHit || cityMatch);
 
     if (isStrong) {
       strongHits += 1;
@@ -347,9 +442,9 @@ function assessPlatformSignal(params: {
 
   let strength = 0;
   if (strongHits >= 1) strength = 2;
-  else if (weakHits >= 2) strength = 1;
+  else if (weakHits >= 1) strength = 1;
 
-  let detail = "no strong match on indexed results";
+  let detail = "not enough evidence on indexed results";
   if (!bestWeak && !bestStrong) {
     detail = "not enough evidence on indexed results";
   }
@@ -366,13 +461,11 @@ function assessPlatformSignal(params: {
     }
   } else if (strength === 1) {
     if (exactNameHit && profileLikeUrlHit) {
-      detail = `possible profile signal · confidence medium · reason: exact name on profile-like result${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `possible profile signal · confidence medium-low · reason: exact name on profile-like result${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
     } else if (usernameHit) {
-      detail = `possible profile signal · confidence medium-low · reason: username-like match found${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
-    } else if (exactNameHit) {
-      detail = `possible profile signal · confidence low-medium · reason: name-like indexed result found${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `possible profile signal · confidence low-medium · reason: username-like match found${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
     } else {
-      detail = `possible profile signal · confidence low · reason: weak indexed match${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `possible profile signal · confidence low · reason: weak profile-like indexed match${bestWeak ? ` · source: ${sourceHint(bestWeak)}` : ""}`;
     }
   }
 
