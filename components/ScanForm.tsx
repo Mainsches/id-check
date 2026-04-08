@@ -60,7 +60,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
     <form className="scan-form fade-in" onSubmit={handleSubmit}>
       <div className="form-intro">
         <span className="eyebrow">AI Identity Risk Scanner</span>
-        <h1>Understand how exposed your identity looks online.</h1>
+        <h1>Is your identity at risk?</h1>
         <p>
           Enter your basic identity signals. The MVP simulates web visibility,
           social profile discovery, and possible email leak exposure.
