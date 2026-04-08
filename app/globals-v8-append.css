@@ -1,0 +1,144 @@
+
+/* ==== V8 additions ==== */
+.platform-title-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.82);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tooltip-panel {
+  position: absolute;
+  top: 26px;
+  left: 0;
+  z-index: 20;
+  width: 260px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(12, 12, 12, 0.96);
+  color: rgba(255,255,255,0.82);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+}
+
+.platform-status {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.platform-status.finding-hot {
+  color: var(--risk-high);
+  background: rgba(255, 107, 115, 0.10);
+  border-color: rgba(255, 107, 115, 0.24);
+}
+
+.platform-status.finding-warm {
+  color: var(--risk-medium);
+  background: rgba(255, 213, 74, 0.10);
+  border-color: rgba(255, 213, 74, 0.24);
+}
+
+.platform-status.finding-cool {
+  color: var(--risk-low);
+  background: rgba(67, 227, 139, 0.10);
+  border-color: rgba(67, 227, 139, 0.24);
+}
+
+.platform-status.finding-muted {
+  color: rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.14);
+}
+
+.platform-detail {
+  margin: 8px 0 0 0;
+  color: rgba(255,255,255,0.82);
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+.panel-summary-v8 {
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-hero {
+  margin-bottom: 12px;
+}
+
+.summary-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.14);
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-pill.risk-low {
+  color: var(--risk-low);
+  background: rgba(67, 227, 139, 0.10);
+}
+
+.summary-pill.risk-medium {
+  color: var(--risk-medium);
+  background: rgba(255, 213, 74, 0.10);
+}
+
+.summary-pill.risk-high {
+  color: var(--risk-high);
+  background: rgba(255, 107, 115, 0.10);
+}
+
+.summary-lead {
+  margin: 0;
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+.summary-body-card {
+  padding: 14px 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02)),
+    radial-gradient(circle at top left, rgba(255,255,255,0.04), transparent 45%);
+}
+
+@media (max-width: 640px) {
+  .tooltip-panel {
+    width: 220px;
+  }
+
+  .platform-card-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

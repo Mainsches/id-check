@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ScanResponse } from "@/types/scan";
 
 type ResultCardProps = {
@@ -44,13 +45,11 @@ function getFindingTone(label: string, value: string) {
   if (text.includes("no directory signals")) return "finding-cool";
   if (text.includes("no username-linked signals")) return "finding-cool";
   if (label === "Identity theft risk core") {
-    if (text.includes("/100")) {
-      const match = text.match(/^(\d+)/);
-      const score = match ? Number(match[1]) : 0;
-      if (score >= 70) return "finding-hot";
-      if (score >= 40) return "finding-warm";
-      return "finding-cool";
-    }
+    const match = text.match(/^(\d+)/);
+    const score = match ? Number(match[1]) : 0;
+    if (score >= 70) return "finding-hot";
+    if (score >= 40) return "finding-warm";
+    return "finding-cool";
   }
 
   if (
@@ -71,10 +70,10 @@ function getFindingTone(label: string, value: string) {
     return "finding-warm";
   }
 
-  if (text.includes("strong profile signal")) return "finding-hot";
-  if (text.includes("possible profile signal")) return "finding-warm";
+  if (text.includes("likely your real profile")) return "finding-hot";
+  if (text.includes("possible match")) return "finding-warm";
+  if (text.includes("no reliable match")) return "finding-muted";
   if (text.includes("not enough evidence")) return "finding-muted";
-  if (text.includes("no strong match")) return "finding-muted";
 
   return "finding-cool";
 }
@@ -110,7 +109,17 @@ function isPlatformFinding(label: string) {
   ].includes(label);
 }
 
+function splitPlatformText(value: string) {
+  const parts = value.split("||").map((part) => part.trim());
+  return {
+    short: parts[0] || value,
+    detail: parts[1] || "",
+  };
+}
+
 export default function ResultCard({ result, onReset }: ResultCardProps) {
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+
   const riskClass =
     result.riskLevel === "High"
       ? "risk-high"
@@ -225,13 +234,30 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           {platformFindings.length > 0 && (
             <div className="platform-section">
               <div className="platform-section-head">
-                <h4>Platform signals</h4>
+                <div className="platform-title-wrap">
+                  <h4>Platform signals</h4>
+                  <button
+                    type="button"
+                    className="info-icon"
+                    onClick={() => setTooltipOpen((value) => !value)}
+                    aria-label="Explain platform signals"
+                  >
+                    ?
+                  </button>
+                  {tooltipOpen && (
+                    <div className="tooltip-panel">
+                      Platform signals show how strongly your identity appears to be connected to public profiles on each platform.
+                    </div>
+                  )}
+                </div>
                 <span className="panel-mini-tag">Per platform</span>
               </div>
 
               <div className="platform-grid">
                 {platformFindings.map((finding) => {
                   const tone = getFindingTone(finding.label, finding.value);
+                  const { short, detail } = splitPlatformText(finding.value);
+
                   return (
                     <div
                       key={finding.label}
@@ -239,8 +265,11 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                     >
                       <div className="platform-card-top">
                         <span className="platform-name">{finding.label}</span>
+                        <span className={`platform-status ${tone}`}>{short}</span>
                       </div>
-                      <strong className="platform-value">{finding.value}</strong>
+                      {detail ? (
+                        <p className="platform-detail">{detail}</p>
+                      ) : null}
                     </div>
                   );
                 })}
@@ -249,13 +278,26 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           )}
         </div>
 
-        <div className="panel panel-summary panel-compact">
+        <div className="panel panel-summary panel-compact panel-summary-v8">
           <div className="panel-header-row">
             <h3>AI Risk Summary</h3>
             <span className="panel-mini-tag">Interpretation</span>
           </div>
 
-          <p className="summary-text summary-text-compact">{result.aiSummary}</p>
+          <div className="summary-hero">
+            <div className={`summary-pill ${riskClass}`}>{result.riskLevel} risk</div>
+            <p className="summary-lead">
+              {result.riskLevel === "High"
+                ? "Your public identity appears easy to connect across multiple sources."
+                : result.riskLevel === "Medium"
+                ? "Some parts of your public identity can still be connected."
+                : "Your public identity currently looks relatively well separated."}
+            </p>
+          </div>
+
+          <div className="summary-body-card">
+            <p className="summary-text summary-text-compact">{result.aiSummary}</p>
+          </div>
         </div>
 
         <div className="panel panel-recommendations panel-compact">
