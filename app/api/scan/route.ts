@@ -302,7 +302,7 @@ function isProfileLikePath(platformKey: string, url: string) {
           !path.startsWith("/watch") &&
           !path.startsWith("/groups") &&
           !path.startsWith("/events") &&
-          !path.includes("/posts/") &&
+          !path.startsWith("/posts") &&
           !path.startsWith("/photo"))
       );
     case "tiktok":
@@ -445,41 +445,39 @@ function assessPlatformSignal(params: {
   if (strongHits >= 1) strength = 2;
   else if (weakHits >= 1) strength = 1;
 
-  let short = "";
-  let detail = "";
+  let value = "No reliable match";
+  let detail = "We did not find enough evidence that this platform is linked to you.";
 
   if (strength === 2) {
-    short = "Likely your real profile";
+    value = "Likely your real profile";
 
     if (exactNameHit && usernameHit) {
-      detail = `We found a strong match based on your exact name and username.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found a strong match based on your full name and username.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && cityHit) {
-      detail = `We found a strong match based on your exact name and city.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found a strong match based on your full name and city.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && profileLikeUrlHit) {
-      detail = `We found a strong match based on your exact name and a profile-like URL.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found a strong match based on your full name and a profile-like URL.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     } else {
-      detail = `We found multiple strong identity indicators for this platform.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found several indicators that point to a likely real profile.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     }
   } else if (strength === 1) {
-    short = "Possible match";
+    value = "Possible match";
 
     if (exactNameHit && profileLikeUrlHit) {
-      detail = `Some signals suggest this could be your profile, but it is not fully confirmed.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Some signs point to a possible profile match based on your name and a profile-like URL.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
     } else if (usernameHit) {
-      detail = `A username-like signal was found, but the match is still uncertain.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Some signs point to a possible profile match based on a username-like result.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
     } else {
-      detail = `We found a weak profile-like match, but not enough to confirm it belongs to you.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `We found a weak profile-like result, but it is not confirmed.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
     }
-  } else {
-    short = "No reliable match";
-    detail = "We did not find strong evidence that this platform is linked to you.";
   }
 
   return {
     label: platform.label,
     strength,
     riskWeight: platform.riskWeight,
-    value: `${short} || ${detail}`,
+    value,
+    detail,
   };
 }
 
@@ -583,14 +581,7 @@ function buildSummary(params: {
       ? "moderate"
       : "currently limited";
 
-  const exposureText =
-    riskLevel === "High"
-      ? "Your public footprint is easy to connect across sources."
-      : riskLevel === "Medium"
-      ? "Some parts of your identity can be connected across sources."
-      : "Your public footprint does not currently show strong identity-theft exposure.";
-
-  return `${fullName}'s identity-theft risk appears ${tone}. ${exposureText} We found ${platformSignalsStrong} strong platform match${platformSignalsStrong === 1 ? "" : "es"} and ${platformSignalsWeak} weaker platform signal${platformSignalsWeak === 1 ? "" : "s"}. Your name appears in about ${totalEstimatedResults.toLocaleString()} indexed results, but visibility alone is not treated as dangerous. The main risk comes from how easily your identity could be linked across platforms or reused.`;
+  return `${fullName}'s identity-theft risk appears ${tone}. Visibility alone is not treated as high risk. This score weighs directory listings, repeated usernames, exact identity matches, city-linked correlation, and cross-platform overlap more strongly than raw search volume. We found approximately ${totalEstimatedResults.toLocaleString()} indexed results, a visibility weight of ${visibilityScore}/10, ${platformSignalsStrong} strong platform signal${platformSignalsStrong === 1 ? "" : "s"}, ${platformSignalsWeak} weak platform signal${platformSignalsWeak === 1 ? "" : "s"}, ${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"}, ${usernameExposureCount} username-linked signal${usernameExposureCount === 1 ? "" : "s"}, ${exactNameMatches} exact-name match${exactNameMatches === 1 ? "" : "es"}, and ${cityMentions} city-linked signal${cityMentions === 1 ? "" : "s"}.`;
 }
 
 export async function POST(request: Request) {
