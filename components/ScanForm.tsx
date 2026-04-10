@@ -19,8 +19,13 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   const [formData, setFormData] = useState<ScanRequestBody>(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [confirmOwnership, setConfirmOwnership] = useState(false);
 
-  function updateField<K extends keyof ScanRequestBody>(key: K, value: ScanRequestBody[K]) {
+  function updateField<K extends keyof ScanRequestBody>(
+    key: K,
+    value: ScanRequestBody[K]
+  ) {
     setFormData((prev) => ({
       ...prev,
       [key]: value,
@@ -30,6 +35,19 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    if (!confirmOwnership) {
+      setError(
+        "Please confirm that you are scanning your own data or that you are authorized to do so."
+      );
+      return;
+    }
+
+    if (!acceptTerms) {
+      setError("Please accept the terms and privacy policy before continuing.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -62,8 +80,9 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         <span className="eyebrow">AI Identity Risk Scanner</span>
         <h1>Is your identity at risk?</h1>
         <p>
-          Enter your basic identity signals. The MVP simulates web visibility,
-          social profile discovery, and possible email leak exposure.
+          Enter your basic identity signals. The scanner analyzes publicly
+          visible exposure signals, possible profile matches, and correlation
+          risks across platforms.
         </p>
       </div>
 
@@ -93,7 +112,9 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         </div>
 
         <div className="field">
-          <label htmlFor="city">City <span className="optional">(optional)</span></label>
+          <label htmlFor="city">
+            City <span className="optional">(optional)</span>
+          </label>
           <input
             id="city"
             type="text"
@@ -104,7 +125,9 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         </div>
 
         <div className="field">
-          <label htmlFor="username">Username <span className="optional">(optional)</span></label>
+          <label htmlFor="username">
+            Username <span className="optional">(optional)</span>
+          </label>
           <input
             id="username"
             type="text"
@@ -115,7 +138,9 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         </div>
 
         <div className="field field-full">
-          <label htmlFor="email">Email <span className="optional">(optional)</span></label>
+          <label htmlFor="email">
+            Email <span className="optional">(optional)</span>
+          </label>
           <input
             id="email"
             type="email"
@@ -128,9 +153,82 @@ export default function ScanForm({ onResult }: ScanFormProps) {
 
       <div className="privacy-box">
         <p>
-          No login. No database. No personal data is stored. Inputs are processed
-          only within the request and returned as a temporary result.
+          No login. No database. No personal data is stored permanently. Inputs
+          are processed only during the request and returned as a temporary
+          result.
         </p>
+      </div>
+
+      <div
+        style={{
+          marginBottom: 18,
+          padding: "16px 18px",
+          border: "1px solid rgba(255,255,255,0.10)",
+          borderRadius: 16,
+          background: "rgba(255,255,255,0.03)",
+        }}
+      >
+        <label
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            marginBottom: 12,
+            color: "rgba(255,255,255,0.82)",
+            lineHeight: 1.5,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={confirmOwnership}
+            onChange={(e) => setConfirmOwnership(e.target.checked)}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            I confirm that I am scanning my own data or that I am authorized to
+            perform this search.
+          </span>
+        </label>
+
+        <label
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            color: "rgba(255,255,255,0.82)",
+            lineHeight: 1.5,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={acceptTerms}
+            onChange={(e) => setAcceptTerms(e.target.checked)}
+            style={{ marginTop: 3 }}
+          />
+          <span>
+            I accept the{" "}
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "#7cc8ff", textDecoration: "none" }}
+            >
+              terms
+            </a>{" "}
+            and{" "}
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noreferrer"
+              style={{ color: "#7cc8ff", textDecoration: "none" }}
+            >
+              privacy policy
+            </a>
+            .
+          </span>
+        </label>
       </div>
 
       {error ? <div className="error-box">{error}</div> : null}
