@@ -11,30 +11,30 @@ type ResultCardProps = {
 function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
   if (riskLevel === "High") {
     return {
-      title: "High identity risk",
+      title: "Hohes Identitätsrisiko",
       subtitle:
-        "Multiple signals suggest that your identity can be connected or misused more easily.",
-      mood: "Critical",
-      summaryBadge: "HIGH RISK",
+        "Mehrere Signale deuten darauf hin, dass deine Identität leichter verknüpft oder missbraucht werden könnte.",
+      mood: "Kritisch",
+      summaryBadge: "HOHES RISIKO",
     };
   }
 
   if (riskLevel === "Medium") {
     return {
-      title: "Moderate identity risk",
+      title: "Mittleres Identitätsrisiko",
       subtitle:
-        "Some public details can still be linked together across multiple sources.",
-      mood: "Needs attention",
-      summaryBadge: "MEDIUM RISK",
+        "Einige öffentliche Informationen lassen sich weiterhin über mehrere Quellen hinweg zusammenführen.",
+      mood: "Beobachten",
+      summaryBadge: "MITTLERES RISIKO",
     };
   }
 
   return {
-    title: "Low identity risk",
+    title: "Niedriges Identitätsrisiko",
     subtitle:
-      "Only limited identity-theft signals were found from the currently visible data.",
-    mood: riskScore <= 15 ? "Low concern" : "Relatively safe",
-    summaryBadge: "LOW RISK",
+      "Es wurden nur wenige öffentlich erkennbare Signale gefunden, die auf ein erhöhtes Risiko hindeuten.",
+    mood: riskScore <= 15 ? "Geringe Auffälligkeit" : "Relativ sicher",
+    summaryBadge: "NIEDRIGES RISIKO",
   };
 }
 
@@ -47,16 +47,35 @@ function getFindingTone(finding: FindingItem) {
 
 function formatFindingShort(label: string) {
   const map: Record<string, string> = {
-    "Identity theft risk core": "Risk core",
-    "Public visibility": "Visibility",
-    "Directory / people-search pages": "Directory",
-    "Username reuse exposure": "Username",
-    "Exact identity matches": "Identity match",
+    "Identity theft risk core": "Risiko-Kern",
+    "Public visibility": "Sichtbarkeit",
+    "Directory / people-search pages": "Verzeichnisse",
+    "Username reuse exposure": "Benutzername",
+    "Exact identity matches": "Namens-Treffer",
     LinkedIn: "LinkedIn",
     Instagram: "Instagram",
     Facebook: "Facebook",
     TikTok: "TikTok",
     "X / Twitter": "X",
+    GitHub: "GitHub",
+    Reddit: "Reddit",
+  };
+
+  return map[label] || label;
+}
+
+function translateFindingLabel(label: string) {
+  const map: Record<string, string> = {
+    "Identity theft risk core": "Kernrisiko",
+    "Public visibility": "Öffentliche Sichtbarkeit",
+    "Directory / people-search pages": "Verzeichnis- / Personensuchseiten",
+    "Username reuse exposure": "Wiederverwendung von Benutzernamen",
+    "Exact identity matches": "Exakte Identitätstreffer",
+    LinkedIn: "LinkedIn",
+    Instagram: "Instagram",
+    Facebook: "Facebook",
+    TikTok: "TikTok",
+    "X / Twitter": "X / Twitter",
     GitHub: "GitHub",
     Reddit: "Reddit",
   };
@@ -77,9 +96,9 @@ function isPlatformFinding(label: string) {
 }
 
 function platformBadgeText(finding: FindingItem) {
-  if (finding.status === "danger") return "Very likely your profile";
-  if (finding.status === "warning") return "Possible match";
-  return "No relevant profile";
+  if (finding.status === "danger") return "Sehr wahrscheinliches Profil";
+  if (finding.status === "warning") return "Möglicher Treffer";
+  return "Kein relevanter Treffer";
 }
 
 function badgeTone(finding: FindingItem) {
@@ -133,12 +152,12 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
       <div className="result-header result-header-vnext">
         <div>
-          <span className="eyebrow">Scan result</span>
-          <h2>Your identity risk overview</h2>
+          <span className="eyebrow">Scan-Ergebnis</span>
+          <h2>Dein Identitätsrisiko im Überblick</h2>
         </div>
 
         <button className="secondary-button" onClick={onReset}>
-          New scan
+          Neuer Scan
         </button>
       </div>
 
@@ -152,7 +171,13 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
         <div className="score-meta">
           <div className="score-meta-top">
-            <p className={`risk-badge ${riskClass}`}>{result.riskLevel} Risk</p>
+            <p className={`risk-badge ${riskClass}`}>
+              {result.riskLevel === "High"
+                ? "Hohes Risiko"
+                : result.riskLevel === "Medium"
+                ? "Mittleres Risiko"
+                : "Niedriges Risiko"}
+            </p>
             <span className={`signal-chip signal-chip-main ${riskClass}`}>
               {riskMeta.mood}
             </span>
@@ -182,10 +207,10 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
             <div className="score-bar-meta">
               <span className="score-bar-label">
-                {result.riskScore}% identity risk
+                {result.riskScore}% Identitätsrisiko
               </span>
               <span className="score-bar-label score-bar-label-soft">
-                based on visibility, correlation, and misuse signals
+                basierend auf Sichtbarkeit, Verknüpfbarkeit und Missbrauchssignalen
               </span>
             </div>
           </div>
@@ -195,8 +220,8 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
       <div className="dashboard-grid">
         <div className="panel panel-findings panel-compact">
           <div className="panel-header-row">
-            <h3>Findings</h3>
-            <span className="panel-mini-tag">Live breakdown</span>
+            <h3>Erkenntnisse</h3>
+            <span className="panel-mini-tag">Live-Auswertung</span>
           </div>
 
           <div className="findings-block">
@@ -208,7 +233,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                   className={`item-row item-row-card item-row-tight item-row-accent ${tone}`}
                 >
                   <div className="item-row-top">
-                    <span>{finding.label}</span>
+                    <span>{translateFindingLabel(finding.label)}</span>
                   </div>
                   <strong>{finding.value}</strong>
                 </div>
@@ -220,26 +245,27 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
             <div className="platform-section">
               <div className="platform-section-head">
                 <div className="platform-heading-wrap">
-                  <h4>Platform signals</h4>
+                  <h4>Plattform-Signale</h4>
                   <button
                     type="button"
                     className="info-trigger"
                     onClick={() => setShowPlatformInfo((prev) => !prev)}
-                    aria-label="Explain platform signals"
+                    aria-label="Plattform-Signale erklären"
                     aria-expanded={showPlatformInfo}
                   >
                     ?
                   </button>
                 </div>
 
-                <span className="panel-mini-tag">Per platform</span>
+                <span className="panel-mini-tag">Pro Plattform</span>
               </div>
 
               {showPlatformInfo && (
                 <div className="info-bubble">
-                  Platform signals estimate whether a public profile on a platform
-                  is likely linked to the searched identity. We look for name,
-                  city, username, and profile-style URL patterns.
+                  Plattform-Signale zeigen, wie stark öffentlich auffindbare
+                  Profile mit der gesuchten Identität zusammenhängen könnten.
+                  Dabei werden Name, Stadt, Benutzername und profiltypische URL-
+                  Muster berücksichtigt.
                 </div>
               )}
 
@@ -253,7 +279,9 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                       className={`platform-card item-row-accent ${tone}`}
                     >
                       <div className="platform-card-top">
-                        <span className="platform-name">{finding.label}</span>
+                        <span className="platform-name">
+                          {translateFindingLabel(finding.label)}
+                        </span>
                         <span className={`platform-badge ${badgeTone(finding)}`}>
                           {platformBadgeText(finding)}
                         </span>
@@ -266,11 +294,11 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                           rel="noreferrer"
                           className="platform-link"
                         >
-                          Open matched result
+                          Gefundenen Treffer öffnen
                         </a>
                       ) : (
                         <span className="platform-link platform-link-muted">
-                          No public result link
+                          Kein öffentlicher Link verfügbar
                         </span>
                       )}
 
@@ -287,7 +315,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
         <div className="panel panel-summary panel-compact">
           <div className="panel-header-row">
-            <h3>AI Risk Summary</h3>
+            <h3>KI-Risikoeinschätzung</h3>
             <span className="panel-mini-tag">Interpretation</span>
           </div>
 
@@ -308,7 +336,9 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                   </p>
                 ))
               ) : (
-                <p className="summary-text summary-text-compact">{result.aiSummary}</p>
+                <p className="summary-text summary-text-compact">
+                  {result.aiSummary}
+                </p>
               )}
             </div>
           </div>
@@ -316,8 +346,8 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
         <div className="panel panel-recommendations panel-compact">
           <div className="panel-header-row">
-            <h3>Recommendations</h3>
-            <span className="panel-mini-tag">Actionable next steps</span>
+            <h3>Empfehlungen</h3>
+            <span className="panel-mini-tag">Nächste Schritte</span>
           </div>
 
           <div className="recommendation-grid recommendation-grid-compact">
