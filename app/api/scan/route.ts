@@ -4,6 +4,8 @@ import {
   ScanResponse,
   RiskLevel,
   RecommendationItem,
+  FindingItem,
+  FindingStatus,
 } from "@/types/scan";
 
 const SERP_API_KEY = process.env.SERP_API_KEY;
@@ -34,6 +36,8 @@ type PlatformAssessment = {
   riskWeight: number;
   value: string;
   detail: string;
+  url?: string;
+  status: FindingStatus;
 };
 
 const EMPTY_SERP_RESPONSE: SerpResponse = {
@@ -445,30 +449,37 @@ function assessPlatformSignal(params: {
   if (strongHits >= 1) strength = 2;
   else if (weakHits >= 1) strength = 1;
 
-  let value = "No reliable match";
-  let detail = "We did not find enough evidence that this platform is linked to you.";
+  let value = "No relevant profile found";
+  let detail =
+    "We did not find enough public evidence to confidently connect this platform to you.";
+  let status: FindingStatus = "neutral";
+  let url: string | undefined = undefined;
 
   if (strength === 2) {
-    value = "Likely your real profile";
+    value = "Very likely your profile";
+    status = "danger";
+    url = bestStrong?.link;
 
     if (exactNameHit && usernameHit) {
-      detail = `We found a strong match based on your full name and username.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found a strong public match based on your full name and username.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && cityHit) {
-      detail = `We found a strong match based on your full name and city.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found a strong public match based on your full name and city.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && profileLikeUrlHit) {
-      detail = `We found a strong match based on your full name and a profile-like URL.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found a strong public match based on your full name and a profile-like URL.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     } else {
-      detail = `We found several indicators that point to a likely real profile.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `We found several public signals that point to a likely real profile.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
     }
   } else if (strength === 1) {
     value = "Possible match";
+    status = "warning";
+    url = bestWeak?.link;
 
     if (exactNameHit && profileLikeUrlHit) {
       detail = `Some signs point to a possible profile match based on your name and a profile-like URL.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
     } else if (usernameHit) {
       detail = `Some signs point to a possible profile match based on a username-like result.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
     } else {
-      detail = `We found a weak profile-like result, but it is not confirmed.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `We found a weak public profile-like result, but it is not confirmed.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
     }
   }
 
@@ -478,6 +489,8 @@ function assessPlatformSignal(params: {
     riskWeight: platform.riskWeight,
     value,
     detail,
+    url,
+    status,
   };
 }
 
@@ -574,14 +587,33 @@ function buildSummary(params: {
     cityMentions,
   } = params;
 
-  const tone =
+  const moodLine =
     riskLevel === "High"
-      ? "elevated"
+      ? "Your public identity appears easy to connect across multiple sources."
       : riskLevel === "Medium"
-      ? "moderate"
-      : "currently limited";
+      ? "Some public details can still be linked together."
+      : "Your public identity currently looks relatively well separated.";
 
-  return `${fullName}'s identity-theft risk appears ${tone}. Visibility alone is not treated as high risk. This score weighs directory listings, repeated usernames, exact identity matches, city-linked correlation, and cross-platform overlap more strongly than raw search volume. We found approximately ${totalEstimatedResults.toLocaleString()} indexed results, a visibility weight of ${visibilityScore}/10, ${platformSignalsStrong} strong platform signal${platformSignalsStrong === 1 ? "" : "s"}, ${platformSignalsWeak} weak platform signal${platformSignalsWeak === 1 ? "" : "s"}, ${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"}, ${usernameExposureCount} username-linked signal${usernameExposureCount === 1 ? "" : "s"}, ${exactNameMatches} exact-name match${exactNameMatches === 1 ? "" : "es"}, and ${cityMentions} city-linked signal${cityMentions === 1 ? "" : "s"}.`;
+  const plainSummary =
+    riskLevel === "High"
+      ? "The strongest risk comes from how easily someone could connect your public information across platforms."
+      : riskLevel === "Medium"
+      ? "The main issue is not visibility alone, but how easily separate details can be connected."
+      : "Right now, the biggest positive is that visibility alone is not creating a major identity risk.";
+
+  return `${moodLine}
+
+${plainSummary}
+
+We found about ${totalEstimatedResults.toLocaleString()} indexed results, ${platformSignalsStrong} strong platform match${platformSignalsStrong === 1 ? "" : "es"}, ${platformSignalsWeak} weaker platform match${platformSignalsWeak === 1 ? "" : "es"}, ${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"}, ${usernameExposureCount} username-linked signal${usernameExposureCount === 1 ? "" : "s"}, ${exactNameMatches} strong identity match${exactNameMatches === 1 ? "" : "es"}, and ${cityMentions} city-linked signal${cityMentions === 1 ? "" : "s"}.
+
+Visibility weight: ${visibilityScore}/10.`;
+}
+
+function scoreStatus(score: number): FindingStatus {
+  if (score >= 70) return "danger";
+  if (score >= 40) return "warning";
+  return "good";
 }
 
 export async function POST(request: Request) {
@@ -758,47 +790,58 @@ export async function POST(request: Request) {
       visibilityScore,
     });
 
-    const directoryValue =
-      directoryListingsCount > 0
-        ? `${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"} detected`
-        : "no directory signals detected";
-
-    const usernameValue =
-      usernameExposureCount > 0
-        ? `${usernameExposureCount} username-linked result${usernameExposureCount === 1 ? "" : "s"} found`
-        : username
-        ? "no username-linked signals detected"
-        : "not checked (no username provided)";
+    const findings: FindingItem[] = [
+      {
+        label: "Identity theft risk core",
+        value: `${riskScore}/100 risk score based mainly on correlation and misuse signals`,
+        status: scoreStatus(riskScore),
+      },
+      {
+        label: "Public visibility",
+        value: `${totalEstimatedResults.toLocaleString()} indexed results estimated (${visibilityScore}/10 visibility weight)`,
+        status: "warning",
+      },
+      {
+        label: "Directory / people-search pages",
+        value:
+          directoryListingsCount > 0
+            ? `${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"} detected`
+            : "no directory signals detected",
+        status: directoryListingsCount > 0 ? "danger" : "good",
+      },
+      {
+        label: "Username reuse exposure",
+        value:
+          usernameExposureCount > 0
+            ? `${usernameExposureCount} username-linked result${usernameExposureCount === 1 ? "" : "s"} found`
+            : username
+            ? "no username-linked signals detected"
+            : "not checked (no username provided)",
+        status:
+          usernameExposureCount > 0
+            ? "danger"
+            : username
+            ? "good"
+            : "neutral",
+      },
+      {
+        label: "Exact identity matches",
+        value: `${exactNameMatches} strong exact-name match${exactNameMatches === 1 ? "" : "es"} identified`,
+        status: exactNameMatches >= 3 ? "warning" : "good",
+      },
+      ...perPlatformFindings.map((platform) => ({
+        label: platform.label,
+        value: platform.value,
+        detail: platform.detail,
+        url: platform.url,
+        status: platform.status,
+      })),
+    ];
 
     const result: ScanResponse = {
       riskScore,
       riskLevel,
-      findings: [
-        {
-          label: "Identity theft risk core",
-          value: `${riskScore}/100 risk score based mainly on correlation and misuse signals`,
-        },
-        {
-          label: "Public visibility",
-          value: `${totalEstimatedResults.toLocaleString()} indexed results estimated (${visibilityScore}/10 visibility weight)`,
-        },
-        {
-          label: "Directory / people-search pages",
-          value: directoryValue,
-        },
-        {
-          label: "Username reuse exposure",
-          value: usernameValue,
-        },
-        {
-          label: "Exact identity matches",
-          value: `${exactNameMatches} strong exact-name match${exactNameMatches === 1 ? "" : "es"} identified`,
-        },
-        ...perPlatformFindings.map((platform) => ({
-          label: platform.label,
-          value: platform.value,
-        })),
-      ],
+      findings,
       aiSummary: buildSummary({
         fullName,
         riskLevel,

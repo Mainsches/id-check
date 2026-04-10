@@ -1,3 +1,20 @@
+export type RiskLevel = "Low" | "Medium" | "High";
+
+export type FindingStatus = "good" | "warning" | "danger" | "neutral";
+
+export type RecommendationItem = {
+  title: string;
+  description: string;
+};
+
+export type FindingItem = {
+  label: string;
+  value: string;
+  detail?: string;
+  url?: string;
+  status?: FindingStatus;
+};
+
 export type ScanRequestBody = {
   firstName: string;
   lastName: string;
@@ -5,18 +22,6 @@ export type ScanRequestBody = {
   username?: string;
   email?: string;
 };
-
-export type FindingItem = {
-  label: string;
-  value: string;
-};
-
-export type RecommendationItem = {
-  title: string;
-  description: string;
-};
-
-export type RiskLevel = "Low" | "Medium" | "High";
 
 export type ScanResponse = {
   riskScore: number;

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ScanResponse } from "@/types/scan";
+import { useMemo, useState } from "react";
+import { ScanResponse, FindingItem } from "@/types/scan";
 
 type ResultCardProps = {
   result: ScanResponse;
@@ -13,9 +13,9 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     return {
       title: "High identity risk",
       subtitle:
-        "Multiple signals suggest that your identity can be correlated or misused more easily.",
-      accent: "risk-high",
+        "Multiple signals suggest that your identity can be connected or misused more easily.",
       mood: "Critical",
+      summaryBadge: "HIGH RISK",
     };
   }
 
@@ -23,9 +23,9 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     return {
       title: "Moderate identity risk",
       subtitle:
-        "Some public signals can be connected, but the current exposure is not extreme.",
-      accent: "risk-medium",
-      mood: "Watch closely",
+        "Some public details can still be linked together across multiple sources.",
+      mood: "Needs attention",
+      summaryBadge: "MEDIUM RISK",
     };
   }
 
@@ -33,49 +33,16 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     title: "Low identity risk",
     subtitle:
       "Only limited identity-theft signals were found from the currently visible data.",
-    accent: "risk-low",
     mood: riskScore <= 15 ? "Low concern" : "Relatively safe",
+    summaryBadge: "LOW RISK",
   };
 }
 
-function getFindingTone(label: string, value: string) {
-  const text = `${label} ${value}`.toLowerCase();
-
-  if (text.includes("not checked")) return "finding-muted";
-  if (text.includes("no directory signals")) return "finding-cool";
-  if (text.includes("no username-linked signals")) return "finding-cool";
-  if (label === "Identity theft risk core") {
-    const match = text.match(/^(\d+)/);
-    const score = match ? Number(match[1]) : 0;
-    if (score >= 70) return "finding-hot";
-    if (score >= 40) return "finding-warm";
-    return "finding-cool";
-  }
-
-  if (
-    text.includes("directory") ||
-    text.includes("people-search") ||
-    text.includes("username")
-  ) {
-    return text.includes("0 ") || text.includes("no ")
-      ? "finding-cool"
-      : "finding-hot";
-  }
-
-  if (
-    text.includes("exact") ||
-    text.includes("identity") ||
-    text.includes("visibility")
-  ) {
-    return "finding-warm";
-  }
-
-  if (text.includes("likely your real profile")) return "finding-hot";
-  if (text.includes("possible match")) return "finding-warm";
-  if (text.includes("no reliable match")) return "finding-muted";
-  if (text.includes("not enough evidence")) return "finding-muted";
-
-  return "finding-cool";
+function getFindingTone(finding: FindingItem) {
+  if (finding.status === "danger") return "finding-danger";
+  if (finding.status === "warning") return "finding-warning";
+  if (finding.status === "good") return "finding-good";
+  return "finding-neutral";
 }
 
 function formatFindingShort(label: string) {
@@ -109,16 +76,32 @@ function isPlatformFinding(label: string) {
   ].includes(label);
 }
 
-function splitPlatformText(value: string) {
-  const parts = value.split("||").map((part) => part.trim());
-  return {
-    short: parts[0] || value,
-    detail: parts[1] || "",
-  };
+function platformBadgeText(finding: FindingItem) {
+  if (finding.status === "danger") return "Very likely your profile";
+  if (finding.status === "warning") return "Possible match";
+  return "No relevant profile";
+}
+
+function badgeTone(finding: FindingItem) {
+  if (finding.status === "danger") return "platform-badge-danger";
+  if (finding.status === "warning") return "platform-badge-warning";
+  return "platform-badge-neutral";
+}
+
+function renderSummaryBlocks(aiSummary: string) {
+  const parts = aiSummary
+    .split("\n")
+    .map((x) => x.trim())
+    .filter(Boolean);
+
+  const headline = parts[0] || "";
+  const support = parts.slice(1);
+
+  return { headline, support };
 }
 
 export default function ResultCard({ result, onReset }: ResultCardProps) {
-  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const [showPlatformInfo, setShowPlatformInfo] = useState(false);
 
   const riskClass =
     result.riskLevel === "High"
@@ -137,6 +120,11 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
   const coreFindings = result.findings.filter((item) => !isPlatformFinding(item.label));
   const platformFindings = result.findings.filter((item) => isPlatformFinding(item.label));
+
+  const summaryBlocks = useMemo(
+    () => renderSummaryBlocks(result.aiSummary),
+    [result.aiSummary]
+  );
 
   return (
     <section className={`result-shell result-shell-vnext fade-in ${riskClass}`}>
@@ -177,10 +165,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
             {topChips.map((finding) => (
               <span
                 key={finding.label}
-                className={`signal-chip ${getFindingTone(
-                  finding.label,
-                  finding.value
-                )}`}
+                className={`signal-chip ${getFindingTone(finding)}`}
               >
                 {formatFindingShort(finding.label)}
               </span>
@@ -216,7 +201,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
           <div className="findings-block">
             {coreFindings.map((finding) => {
-              const tone = getFindingTone(finding.label, finding.value);
+              const tone = getFindingTone(finding);
               return (
                 <div
                   key={finding.label}
@@ -234,29 +219,33 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           {platformFindings.length > 0 && (
             <div className="platform-section">
               <div className="platform-section-head">
-                <div className="platform-title-wrap">
+                <div className="platform-heading-wrap">
                   <h4>Platform signals</h4>
                   <button
                     type="button"
-                    className="info-icon"
-                    onClick={() => setTooltipOpen((value) => !value)}
+                    className="info-trigger"
+                    onClick={() => setShowPlatformInfo((prev) => !prev)}
                     aria-label="Explain platform signals"
+                    aria-expanded={showPlatformInfo}
                   >
                     ?
                   </button>
-                  {tooltipOpen && (
-                    <div className="tooltip-panel">
-                      Platform signals show how strongly your identity appears to be connected to public profiles on each platform.
-                    </div>
-                  )}
                 </div>
+
                 <span className="panel-mini-tag">Per platform</span>
               </div>
 
+              {showPlatformInfo && (
+                <div className="info-bubble">
+                  Platform signals estimate whether a public profile on a platform
+                  is likely linked to the searched identity. We look for name,
+                  city, username, and profile-style URL patterns.
+                </div>
+              )}
+
               <div className="platform-grid">
                 {platformFindings.map((finding) => {
-                  const tone = getFindingTone(finding.label, finding.value);
-                  const { short, detail } = splitPlatformText(finding.value);
+                  const tone = getFindingTone(finding);
 
                   return (
                     <div
@@ -265,11 +254,29 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                     >
                       <div className="platform-card-top">
                         <span className="platform-name">{finding.label}</span>
-                        <span className={`platform-status ${tone}`}>{short}</span>
+                        <span className={`platform-badge ${badgeTone(finding)}`}>
+                          {platformBadgeText(finding)}
+                        </span>
                       </div>
-                      {detail ? (
-                        <p className="platform-detail">{detail}</p>
-                      ) : null}
+
+                      {finding.url ? (
+                        <a
+                          href={finding.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="platform-link"
+                        >
+                          Open matched result
+                        </a>
+                      ) : (
+                        <span className="platform-link platform-link-muted">
+                          No public result link
+                        </span>
+                      )}
+
+                      {finding.detail && (
+                        <p className="platform-detail">{finding.detail}</p>
+                      )}
                     </div>
                   );
                 })}
@@ -278,25 +285,32 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           )}
         </div>
 
-        <div className="panel panel-summary panel-compact panel-summary-v8">
+        <div className="panel panel-summary panel-compact">
           <div className="panel-header-row">
             <h3>AI Risk Summary</h3>
             <span className="panel-mini-tag">Interpretation</span>
           </div>
 
-          <div className="summary-hero">
-            <div className={`summary-pill ${riskClass}`}>{result.riskLevel} risk</div>
-            <p className="summary-lead">
-              {result.riskLevel === "High"
-                ? "Your public identity appears easy to connect across multiple sources."
-                : result.riskLevel === "Medium"
-                ? "Some parts of your public identity can still be connected."
-                : "Your public identity currently looks relatively well separated."}
-            </p>
-          </div>
+          <div className="summary-v9">
+            <div className={`summary-badge ${riskClass}`}>
+              {riskMeta.summaryBadge}
+            </div>
 
-          <div className="summary-body-card">
-            <p className="summary-text summary-text-compact">{result.aiSummary}</p>
+            {summaryBlocks.headline && (
+              <h4 className="summary-headline">{summaryBlocks.headline}</h4>
+            )}
+
+            <div className="summary-body-card">
+              {summaryBlocks.support.length > 0 ? (
+                summaryBlocks.support.map((paragraph, index) => (
+                  <p key={index} className="summary-text summary-text-compact">
+                    {paragraph}
+                  </p>
+                ))
+              ) : (
+                <p className="summary-text summary-text-compact">{result.aiSummary}</p>
+              )}
+            </div>
           </div>
         </div>
 
