@@ -2,64 +2,37 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Identity Risk Scanner",
+  title: "ID Radar – Identitätsrisiko prüfen",
   description:
-    "Minimal MVP to simulate online identity exposure and produce a risk score.",
+    "Analysiere, wie sichtbar deine Identität online ist und erkenne potenzielle Risiken frühzeitig.",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
+    <html lang="de">
       <body>
-        {children}
+        <div className="app-container">
+          <header className="main-header">
+            <div className="logo">ID Radar</div>
+          </header>
 
-        <footer
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            padding: "12px 20px 28px",
-            color: "rgba(255,255,255,0.55)",
-            fontSize: 14,
-            textAlign: "center",
-          }}
-        >
-          <a
-            href="/privacy"
-            style={{
-              color: "rgba(255,255,255,0.72)",
-              textDecoration: "none",
-              margin: "0 8px",
-            }}
-          >
-            Privacy
-          </a>
-          ·
-          <a
-            href="/terms"
-            style={{
-              color: "rgba(255,255,255,0.72)",
-              textDecoration: "none",
-              margin: "0 8px",
-            }}
-          >
-            Terms
-          </a>
-          ·
-          <a
-            href="/imprint"
-            style={{
-              color: "rgba(255,255,255,0.72)",
-              textDecoration: "none",
-              margin: "0 8px",
-            }}
-          >
-            Imprint
-          </a>
-        </footer>
+          {children}
+
+          <footer className="main-footer">
+            <a href="/privacy">Datenschutz</a>
+            <span>·</span>
+            <a href="/terms">AGB</a>
+            <span>·</span>
+            <a href="/imprint">Impressum</a>
+          </footer>
+        </div>
       </body>
     </html>
   );

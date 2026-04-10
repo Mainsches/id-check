@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { ScanRequestBody, ScanResponse } from "@/types/scan";
 
-type ScanFormProps = {
+type Props = {
   onResult: (result: ScanResponse) => void;
 };
 
@@ -15,60 +15,52 @@ const initialState: ScanRequestBody = {
   email: "",
 };
 
-export default function ScanForm({ onResult }: ScanFormProps) {
-  const [formData, setFormData] = useState<ScanRequestBody>(initialState);
+export default function ScanForm({ onResult }: Props) {
+  const [formData, setFormData] = useState(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [acceptTerms, setAcceptTerms] = useState(false);
-  const [confirmOwnership, setConfirmOwnership] = useState(false);
+  const [accept, setAccept] = useState(false);
+  const [confirm, setConfirm] = useState(false);
 
   function updateField<K extends keyof ScanRequestBody>(
     key: K,
     value: ScanRequestBody[K]
   ) {
-    setFormData((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [key]: value }));
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
     setError("");
 
-    if (!confirmOwnership) {
-      setError(
-        "Please confirm that you are scanning your own data or that you are authorized to do so."
-      );
+    if (!confirm) {
+      setError("Bitte bestätige, dass du deine eigenen Daten prüfst.");
       return;
     }
 
-    if (!acceptTerms) {
-      setError("Please accept the terms and privacy policy before continuing.");
+    if (!accept) {
+      setError("Bitte akzeptiere die Datenschutzbestimmungen und AGB.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch("/api/scan", {
+      const res = await fetch("/api/scan", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) {
-        setError(data?.error || "Something went wrong during the scan.");
+      if (!res.ok) {
+        setError("Fehler beim Scan.");
         return;
       }
 
-      onResult(data as ScanResponse);
+      onResult(data);
     } catch {
-      setError("Network error. Please try again.");
+      setError("Netzwerkfehler.");
     } finally {
       setLoading(false);
     }
@@ -77,164 +69,68 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   return (
     <form className="scan-form fade-in" onSubmit={handleSubmit}>
       <div className="form-intro">
-        <span className="eyebrow">AI Identity Risk Scanner</span>
-        <h1>Is your identity at risk?</h1>
+        <span className="eyebrow">ID Radar</span>
+        <h1>Wie sichtbar ist deine Identität im Internet?</h1>
         <p>
-          Enter your basic identity signals. The scanner analyzes publicly
-          visible exposure signals, possible profile matches, and correlation
-          risks across platforms.
+          Analysiere öffentliche Daten, Profile und mögliche Verknüpfungen deiner
+          Identität.
         </p>
       </div>
 
       <div className="form-grid">
-        <div className="field">
-          <label htmlFor="firstName">First name</label>
-          <input
-            id="firstName"
-            type="text"
-            placeholder="John"
-            value={formData.firstName}
-            onChange={(e) => updateField("firstName", e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="lastName">Last name</label>
-          <input
-            id="lastName"
-            type="text"
-            placeholder="Doe"
-            value={formData.lastName}
-            onChange={(e) => updateField("lastName", e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="city">
-            City <span className="optional">(optional)</span>
-          </label>
-          <input
-            id="city"
-            type="text"
-            placeholder="Zurich"
-            value={formData.city}
-            onChange={(e) => updateField("city", e.target.value)}
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="username">
-            Username <span className="optional">(optional)</span>
-          </label>
-          <input
-            id="username"
-            type="text"
-            placeholder="john.doe89"
-            value={formData.username}
-            onChange={(e) => updateField("username", e.target.value)}
-          />
-        </div>
-
-        <div className="field field-full">
-          <label htmlFor="email">
-            Email <span className="optional">(optional)</span>
-          </label>
-          <input
-            id="email"
-            type="email"
-            placeholder="john@example.com"
-            value={formData.email}
-            onChange={(e) => updateField("email", e.target.value)}
-          />
-        </div>
+        <input
+          placeholder="Vorname"
+          value={formData.firstName}
+          onChange={(e) => updateField("firstName", e.target.value)}
+          required
+        />
+        <input
+          placeholder="Nachname"
+          value={formData.lastName}
+          onChange={(e) => updateField("lastName", e.target.value)}
+          required
+        />
+        <input
+          placeholder="Stadt (optional)"
+          value={formData.city}
+          onChange={(e) => updateField("city", e.target.value)}
+        />
+        <input
+          placeholder="Username (optional)"
+          value={formData.username}
+          onChange={(e) => updateField("username", e.target.value)}
+        />
+        <input
+          placeholder="E-Mail (optional)"
+          value={formData.email}
+          onChange={(e) => updateField("email", e.target.value)}
+        />
       </div>
 
-      <div className="privacy-box">
-        <p>
-          No login. No database. No personal data is stored permanently. Inputs
-          are processed only during the request and returned as a temporary
-          result.
-        </p>
-      </div>
-
-      <div
-        style={{
-          marginBottom: 18,
-          padding: "16px 18px",
-          border: "1px solid rgba(255,255,255,0.10)",
-          borderRadius: 16,
-          background: "rgba(255,255,255,0.03)",
-        }}
-      >
-        <label
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-            marginBottom: 12,
-            color: "rgba(255,255,255,0.82)",
-            lineHeight: 1.5,
-            cursor: "pointer",
-          }}
-        >
+      <div className="checkbox-box">
+        <label>
           <input
             type="checkbox"
-            checked={confirmOwnership}
-            onChange={(e) => setConfirmOwnership(e.target.checked)}
-            style={{ marginTop: 3 }}
+            checked={confirm}
+            onChange={(e) => setConfirm(e.target.checked)}
           />
-          <span>
-            I confirm that I am scanning my own data or that I am authorized to
-            perform this search.
-          </span>
+          Ich bestätige, dass ich meine eigenen Daten prüfe.
         </label>
 
-        <label
-          style={{
-            display: "flex",
-            alignItems: "flex-start",
-            gap: 10,
-            color: "rgba(255,255,255,0.82)",
-            lineHeight: 1.5,
-            cursor: "pointer",
-          }}
-        >
+        <label>
           <input
             type="checkbox"
-            checked={acceptTerms}
-            onChange={(e) => setAcceptTerms(e.target.checked)}
-            style={{ marginTop: 3 }}
+            checked={accept}
+            onChange={(e) => setAccept(e.target.checked)}
           />
-          <span>
-            I accept the{" "}
-            <a
-              href="/terms"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "#7cc8ff", textDecoration: "none" }}
-            >
-              terms
-            </a>{" "}
-            and{" "}
-            <a
-              href="/privacy"
-              target="_blank"
-              rel="noreferrer"
-              style={{ color: "#7cc8ff", textDecoration: "none" }}
-            >
-              privacy policy
-            </a>
-            .
-          </span>
+          Ich akzeptiere Datenschutz & AGB.
         </label>
       </div>
 
-      {error ? <div className="error-box">{error}</div> : null}
+      {error && <div className="error-box">{error}</div>}
 
-      <button type="submit" className="primary-button" disabled={loading}>
-        {loading ? "Scanning..." : "Scan my identity"}
+      <button disabled={loading} className="primary-button">
+        {loading ? "Scan läuft..." : "Identität analysieren"}
       </button>
     </form>
   );
