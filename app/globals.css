@@ -1553,3 +1553,20 @@ input {
   font-weight: 600;
   cursor: pointer;
 }
+
+/* German branding polish */
+.form-intro .eyebrow {
+  letter-spacing: 0.12em;
+}
+
+.form-intro p {
+  max-width: 760px;
+}
+
+.scan-form a:hover {
+  opacity: 0.9;
+}
+
+footer a:hover {
+  opacity: 0.9;
+}
