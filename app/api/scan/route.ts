@@ -161,7 +161,7 @@ function dedupeResults(groups: SerpOrganicResult[][]): SerpOrganicResult[] {
 
 async function fetchSerp(query: string): Promise<SerpResponse> {
   if (!SERP_API_KEY) {
-    throw new Error("Missing SERP_API_KEY");
+    throw new Error("SERP_API_KEY fehlt");
   }
 
   const url = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(
@@ -175,7 +175,7 @@ async function fetchSerp(query: string): Promise<SerpResponse> {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`SerpAPI error: ${response.status} ${text}`);
+    throw new Error(`SerpAPI-Fehler: ${response.status} ${text}`);
   }
 
   return (await response.json()) as SerpResponse;
@@ -449,37 +449,37 @@ function assessPlatformSignal(params: {
   if (strongHits >= 1) strength = 2;
   else if (weakHits >= 1) strength = 1;
 
-  let value = "No relevant profile found";
+  let value = "Kein relevanter Treffer gefunden";
   let detail =
-    "We did not find enough public evidence to confidently connect this platform to you.";
+    "Es wurden nicht genug öffentliche Hinweise gefunden, um diese Plattform eindeutig mit dir zu verknüpfen.";
   let status: FindingStatus = "neutral";
   let url: string | undefined = undefined;
 
   if (strength === 2) {
-    value = "Very likely your profile";
+    value = "Sehr wahrscheinlich dein Profil";
     status = "danger";
     url = bestStrong?.link;
 
     if (exactNameHit && usernameHit) {
-      detail = `We found a strong public match based on your full name and username.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und deines Benutzernamens gefunden.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && cityHit) {
-      detail = `We found a strong public match based on your full name and city.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und deiner Stadt gefunden.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
     } else if (exactNameHit && profileLikeUrlHit) {
-      detail = `We found a strong public match based on your full name and a profile-like URL.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und einer profiltypischen URL gefunden.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
     } else {
-      detail = `We found several public signals that point to a likely real profile.${bestStrong ? ` Source: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Mehrere öffentliche Hinweise deuten auf ein wahrscheinliches echtes Profil hin.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
     }
   } else if (strength === 1) {
-    value = "Possible match";
+    value = "Möglicher Treffer";
     status = "warning";
     url = bestWeak?.link;
 
     if (exactNameHit && profileLikeUrlHit) {
-      detail = `Some signs point to a possible profile match based on your name and a profile-like URL.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Es gibt Hinweise auf einen möglichen Profil-Treffer anhand deines Namens und einer profiltypischen URL.${bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""}`;
     } else if (usernameHit) {
-      detail = `Some signs point to a possible profile match based on a username-like result.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Es gibt Hinweise auf einen möglichen Profil-Treffer anhand eines benutzernamenähnlichen Ergebnisses.${bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""}`;
     } else {
-      detail = `We found a weak public profile-like result, but it is not confirmed.${bestWeak ? ` Source: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Es wurde ein schwacher profilähnlicher öffentlicher Treffer gefunden, der aber nicht bestätigt ist.${bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""}`;
     }
   }
 
@@ -513,49 +513,49 @@ function buildRecommendations(params: {
 
   if (directoryListingsCount > 0) {
     recommendations.push({
-      title: "Remove directory listings",
+      title: "Verzeichnis-Einträge entfernen",
       description:
-        "Directory and people-search sites are one of the clearest identity-theft risk indicators. Prioritize opt-out and removal there first.",
+        "Verzeichnis- und Personensuchseiten gehören zu den stärksten Risikosignalen. Dort solltest du zuerst auf Entfernung oder Opt-out setzen.",
     });
   }
 
   if (usernameExposureCount > 0) {
     recommendations.push({
-      title: "Stop reusing usernames",
+      title: "Benutzernamen nicht wiederverwenden",
       description:
-        "Use different usernames across platforms to reduce cross-platform identity correlation.",
+        "Verwende auf verschiedenen Plattformen unterschiedliche Benutzernamen, damit deine Identität schwerer verknüpft werden kann.",
     });
   }
 
   if (platformSignalsStrong > 1) {
     recommendations.push({
-      title: "Reduce cross-platform overlap",
+      title: "Plattformübergreifende Überschneidungen reduzieren",
       description:
-        "Avoid repeating the same full name, location, profile details, and links across multiple platforms.",
+        "Vermeide es, denselben vollständigen Namen, Standort, Profiltexte und Links auf mehreren Plattformen identisch zu verwenden.",
     });
   }
 
   if (cityMentions > 0) {
     recommendations.push({
-      title: "Hide location details",
+      title: "Standortangaben einschränken",
       description:
-        "Reduce searchable combinations of your full name and city or region when possible.",
+        "Reduziere nach Möglichkeit die öffentlich auffindbare Kombination aus deinem vollständigen Namen und deiner Stadt oder Region.",
     });
   }
 
   if (recommendations.length < 3 && visibilityScore > 0) {
     recommendations.push({
-      title: "Audit public search results",
+      title: "Öffentliche Suchergebnisse prüfen",
       description:
-        "Review visible search results for old profiles, forgotten pages, and unnecessary identity details.",
+        "Überprüfe sichtbare Suchergebnisse auf alte Profile, vergessene Seiten und unnötige Identitätsmerkmale.",
     });
   }
 
   if (recommendations.length < 3) {
     recommendations.push({
-      title: "Monitor your exposure",
+      title: "Sichtbarkeit regelmässig kontrollieren",
       description:
-        "Repeat the scan regularly after creating new public accounts or changing profile information.",
+        "Wiederhole den Scan regelmässig, besonders nach neuen öffentlichen Profilen oder Änderungen an bestehenden Accounts.",
     });
   }
 
@@ -575,8 +575,6 @@ function buildSummary(params: {
   cityMentions: number;
 }) {
   const {
-    fullName,
-    riskLevel,
     totalEstimatedResults,
     visibilityScore,
     platformSignalsStrong,
@@ -588,26 +586,26 @@ function buildSummary(params: {
   } = params;
 
   const moodLine =
-    riskLevel === "High"
-      ? "Your public identity appears easy to connect across multiple sources."
-      : riskLevel === "Medium"
-      ? "Some public details can still be linked together."
-      : "Your public identity currently looks relatively well separated.";
+    params.riskLevel === "High"
+      ? "Deine öffentliche Identität lässt sich relativ leicht über mehrere Quellen hinweg verknüpfen."
+      : params.riskLevel === "Medium"
+      ? "Einige öffentliche Informationen lassen sich weiterhin miteinander verbinden."
+      : "Deine öffentliche Identität wirkt aktuell vergleichsweise gut voneinander getrennt.";
 
   const plainSummary =
-    riskLevel === "High"
-      ? "The strongest risk comes from how easily someone could connect your public information across platforms."
-      : riskLevel === "Medium"
-      ? "The main issue is not visibility alone, but how easily separate details can be connected."
-      : "Right now, the biggest positive is that visibility alone is not creating a major identity risk.";
+    params.riskLevel === "High"
+      ? "Das stärkste Risiko entsteht dadurch, wie einfach jemand deine öffentlichen Informationen plattformübergreifend zusammenführen kann."
+      : params.riskLevel === "Medium"
+      ? "Das Hauptproblem ist nicht nur Sichtbarkeit, sondern wie leicht sich einzelne Informationen miteinander verknüpfen lassen."
+      : "Aktuell ist positiv, dass reine Sichtbarkeit noch kein starkes Identitätsrisiko erzeugt.";
 
   return `${moodLine}
 
 ${plainSummary}
 
-We found about ${totalEstimatedResults.toLocaleString()} indexed results, ${platformSignalsStrong} strong platform match${platformSignalsStrong === 1 ? "" : "es"}, ${platformSignalsWeak} weaker platform match${platformSignalsWeak === 1 ? "" : "es"}, ${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"}, ${usernameExposureCount} username-linked signal${usernameExposureCount === 1 ? "" : "s"}, ${exactNameMatches} strong identity match${exactNameMatches === 1 ? "" : "es"}, and ${cityMentions} city-linked signal${cityMentions === 1 ? "" : "s"}.
+Es wurden etwa ${totalEstimatedResults.toLocaleString()} indexierte Ergebnisse gefunden, dazu ${platformSignalsStrong} starke Plattform-Treffer${platformSignalsStrong === 1 ? "" : ""}, ${platformSignalsWeak} schwächere Plattform-Treffer${platformSignalsWeak === 1 ? "" : ""}, ${directoryListingsCount} Verzeichnis-Signal${directoryListingsCount === 1 ? "" : "e"}, ${usernameExposureCount} benutzernamenbezogene Signal${usernameExposureCount === 1 ? "" : "e"}, ${exactNameMatches} starke Identitätstreffer und ${cityMentions} stadtbezogene Signal${cityMentions === 1 ? "" : "e"}.
 
-Visibility weight: ${visibilityScore}/10.`;
+Sichtbarkeitsgewichtung: ${visibilityScore}/10.`;
 }
 
 function scoreStatus(score: number): FindingStatus {
@@ -628,14 +626,14 @@ export async function POST(request: Request) {
 
     if (!firstName || !lastName) {
       return NextResponse.json(
-        { error: "First name and last name are required." },
+        { error: "Vorname und Nachname sind erforderlich." },
         { status: 400 }
       );
     }
 
     if (email && !isValidEmail(email)) {
       return NextResponse.json(
-        { error: "Please provide a valid email address." },
+        { error: "Bitte gib eine gültige E-Mail-Adresse ein." },
         { status: 400 }
       );
     }
@@ -793,30 +791,30 @@ export async function POST(request: Request) {
     const findings: FindingItem[] = [
       {
         label: "Identity theft risk core",
-        value: `${riskScore}/100 risk score based mainly on correlation and misuse signals`,
+        value: `${riskScore}/100 Risikowert basierend auf Verknüpfbarkeit und Missbrauchssignalen`,
         status: scoreStatus(riskScore),
       },
       {
         label: "Public visibility",
-        value: `${totalEstimatedResults.toLocaleString()} indexed results estimated (${visibilityScore}/10 visibility weight)`,
+        value: `${totalEstimatedResults.toLocaleString()} indexierte Ergebnisse geschätzt (${visibilityScore}/10 Sichtbarkeitsgewichtung)`,
         status: "warning",
       },
       {
         label: "Directory / people-search pages",
         value:
           directoryListingsCount > 0
-            ? `${directoryListingsCount} directory signal${directoryListingsCount === 1 ? "" : "s"} detected`
-            : "no directory signals detected",
+            ? `${directoryListingsCount} Verzeichnis-Signal${directoryListingsCount === 1 ? "" : "e"} erkannt`
+            : "Keine Verzeichnis-Signale erkannt",
         status: directoryListingsCount > 0 ? "danger" : "good",
       },
       {
         label: "Username reuse exposure",
         value:
           usernameExposureCount > 0
-            ? `${usernameExposureCount} username-linked result${usernameExposureCount === 1 ? "" : "s"} found`
+            ? `${usernameExposureCount} benutzernamenbezogene${usernameExposureCount === 1 ? "s" : ""} Ergebnis${usernameExposureCount === 1 ? "" : "se"} gefunden`
             : username
-            ? "no username-linked signals detected"
-            : "not checked (no username provided)",
+            ? "Keine benutzernamenbezogenen Signale erkannt"
+            : "Nicht geprüft (kein Benutzername angegeben)",
         status:
           usernameExposureCount > 0
             ? "danger"
@@ -826,7 +824,7 @@ export async function POST(request: Request) {
       },
       {
         label: "Exact identity matches",
-        value: `${exactNameMatches} strong exact-name match${exactNameMatches === 1 ? "" : "es"} identified`,
+        value: `${exactNameMatches} starke Identitätstreffer erkannt`,
         status: exactNameMatches >= 3 ? "warning" : "good",
       },
       ...perPlatformFindings.map((platform) => ({
@@ -869,9 +867,9 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 200 });
   } catch (error: unknown) {
     const message =
-      error instanceof Error ? error.message : "Unknown error";
+      error instanceof Error ? error.message : "Unbekannter Fehler";
 
-    console.error("Scan error:", message);
+    console.error("Scan-Fehler:", message);
 
     return NextResponse.json(
       { error: message },

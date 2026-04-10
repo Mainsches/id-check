@@ -1,132 +1,133 @@
 export default function PrivacyPage() {
   return (
     <main style={{ maxWidth: 920, margin: "0 auto", padding: "40px 20px" }}>
-      <h1>Privacy Policy</h1>
+      <h1>Datenschutzerklärung</h1>
 
       <p>
-        This Privacy Policy explains how ID Radar processes personal data when you
-        use this website and its identity risk scanning features.
+        Diese Datenschutzerklärung erklärt, wie ID Radar personenbezogene Daten
+        verarbeitet, wenn du diese Website und die Funktionen zur Prüfung von
+        Identitätsrisiken nutzt.
       </p>
 
-      <h2>1. Controller</h2>
+      <h2>1. Verantwortliche Stelle</h2>
       <p>
-        The controller responsible for data processing on this website is the
-        operator of ID Radar.
+        Verantwortlich für die Datenverarbeitung auf dieser Website ist der
+        Betreiber von ID Radar.
       </p>
       <p>
-        Contact: <a href="mailto:hello@idradar.ch">hello@idradar.ch</a>
+        Kontakt: <a href="mailto:hello@idradar.ch">hello@idradar.ch</a>
       </p>
 
-      <h2>2. What data you may enter</h2>
-      <p>
-        You may voluntarily enter personal data such as:
-      </p>
+      <h2>2. Welche Daten du eingeben kannst</h2>
+      <p>Du kannst freiwillig unter anderem folgende Daten eingeben:</p>
       <ul>
-        <li>first name</li>
-        <li>last name</li>
-        <li>city</li>
-        <li>username</li>
-        <li>email address</li>
+        <li>Vorname</li>
+        <li>Nachname</li>
+        <li>Stadt</li>
+        <li>Benutzername</li>
+        <li>E-Mail-Adresse</li>
       </ul>
 
-      <h2>3. Purpose of processing</h2>
+      <h2>3. Zweck der Verarbeitung</h2>
       <p>
-        We process the submitted data only to generate an identity exposure and
-        identity risk assessment based on publicly available search results and
-        matching signals.
+        Die eingegebenen Daten werden ausschließlich verarbeitet, um eine
+        Einschätzung der Online-Sichtbarkeit und des Identitätsrisikos anhand
+        öffentlich verfügbarer Suchergebnisse und Zuordnungssignale zu erzeugen.
       </p>
 
-      <h2>4. No permanent storage of scan inputs</h2>
+      <h2>4. Keine dauerhafte Speicherung der Scan-Eingaben</h2>
       <p>
-        At the current stage of the product, scan inputs are processed only within
-        the request needed to generate the result. We do not intentionally store
-        the submitted scan fields in a database for long-term retention.
+        Derzeit werden Scan-Eingaben nur für die Dauer der Anfrage verarbeitet,
+        die zur Erstellung des Ergebnisses erforderlich ist. Eine dauerhafte
+        Speicherung der eingegebenen Scan-Daten in einer Datenbank ist aktuell
+        nicht vorgesehen.
       </p>
 
-      <h2>5. Public-source analysis</h2>
+      <h2>5. Analyse öffentlicher Quellen</h2>
       <p>
-        The scanner evaluates publicly accessible information and search result
-        patterns. Results are estimates and do not represent verified facts about
-        identity theft, account ownership, or legal wrongdoing.
+        ID Radar wertet öffentlich zugängliche Informationen und Suchmuster aus.
+        Die Ergebnisse sind Schätzungen und stellen keinen Beweis für
+        Identitätsdiebstahl, Account-Inhaberschaft oder rechtswidriges Verhalten
+        dar.
       </p>
 
-      <h2>6. Third-party services</h2>
+      <h2>6. Drittanbieter</h2>
       <p>
-        To provide the scanning functionality, this website may rely on third-party
-        infrastructure or service providers, such as:
+        Zur Bereitstellung der Scan-Funktion können externe Dienstleister
+        eingesetzt werden, zum Beispiel:
       </p>
       <ul>
-        <li>hosting providers</li>
-        <li>search-result aggregation providers</li>
-        <li>technical infrastructure and security providers</li>
+        <li>Hosting-Anbieter</li>
+        <li>Suchergebnis- und API-Dienstleister</li>
+        <li>technische Infrastruktur- und Sicherheitsanbieter</li>
       </ul>
       <p>
-        These providers may process technical request data where necessary for
-        delivery, security, and functionality.
+        Diese Anbieter können technische Daten verarbeiten, soweit dies für den
+        Betrieb, die Sicherheit und die Funktionalität erforderlich ist.
       </p>
 
-      <h2>7. Hosting and server logs</h2>
+      <h2>7. Hosting und Server-Logs</h2>
       <p>
-        This website is hosted via external infrastructure providers. As with most
-        websites, technical server data such as IP address, request timestamps,
-        browser information, and device-related metadata may be processed in server
-        logs for stability, security, and abuse prevention.
+        Diese Website wird über externe Infrastruktur bereitgestellt. Wie bei
+        den meisten Websites können technische Serverdaten wie IP-Adresse,
+        Zeitstempel, Browserinformationen und gerätebezogene Metadaten zur
+        Stabilität, Sicherheit und Missbrauchsabwehr verarbeitet werden.
       </p>
 
-      <h2>8. Cookies and analytics</h2>
+      <h2>8. Cookies und Analyse</h2>
       <p>
-        At this stage, we do not intentionally use login accounts, user profiles,
-        or a permanent customer database for the scan function itself. If analytics,
-        cookies, or additional measurement tools are added later, this Privacy
-        Policy will be updated accordingly.
+        Aktuell verwendet ID Radar für die Scan-Funktion keine Benutzerkonten,
+        keine dauerhafte Profildatenbank und keine absichtliche Speicherung der
+        Scan-Eingaben. Falls später Analyse-Tools, Cookies oder weitere
+        Messverfahren eingesetzt werden, wird diese Datenschutzerklärung
+        entsprechend aktualisiert.
       </p>
 
-      <h2>9. Disclosure to third parties</h2>
+      <h2>9. Weitergabe an Dritte</h2>
       <p>
-        We do not sell your personal data. Data may be disclosed to service
-        providers only where this is technically necessary to operate the website
-        and scanning functionality.
+        Personenbezogene Daten werden nicht verkauft. Eine Weitergabe an
+        Dienstleister erfolgt nur, soweit dies technisch notwendig ist, um die
+        Website und die Scan-Funktion bereitzustellen.
       </p>
 
-      <h2>10. International data processing</h2>
+      <h2>10. Internationale Verarbeitung</h2>
       <p>
-        Depending on the infrastructure and third-party tools used, technical data
-        may be processed outside Switzerland. Where applicable, such processing is
-        limited to what is necessary to provide the service.
+        Abhängig von Infrastruktur und eingesetzten Drittanbietern können
+        technische Daten auch außerhalb der Schweiz verarbeitet werden. Eine
+        solche Verarbeitung erfolgt nur im erforderlichen Umfang.
       </p>
 
-      <h2>11. Data retention</h2>
+      <h2>11. Aufbewahrung</h2>
       <p>
-        We aim to keep personal data only for as long as necessary for the
-        respective purpose. Because scan inputs are currently designed to be
-        processed temporarily, long-term retention is not intended for those fields.
-        Technical logs may be retained for a limited period where necessary for
-        security and operations.
+        Daten werden nur so lange verarbeitet oder aufbewahrt, wie dies für den
+        jeweiligen Zweck erforderlich ist. Für Scan-Eingaben ist derzeit keine
+        dauerhafte Speicherung vorgesehen. Technische Logdaten können für einen
+        begrenzten Zeitraum aus Sicherheits- und Betriebsgründen bestehen
+        bleiben.
       </p>
 
-      <h2>12. Your rights</h2>
+      <h2>12. Deine Rechte</h2>
       <p>
-        Under applicable data protection law, you may have the right to request
-        information about personal data processed about you, and where applicable
-        request correction or deletion.
+        Nach anwendbarem Datenschutzrecht kannst du gegebenenfalls Auskunft über
+        verarbeitete personenbezogene Daten verlangen und – sofern anwendbar –
+        Berichtigung oder Löschung beantragen.
       </p>
       <p>
-        For such requests, contact:{" "}
-        <a href="mailto:hello@idradar.ch">hello@idradar.ch</a>
-      </p>
-
-      <h2>13. User responsibility</h2>
-      <p>
-        You may only use this tool to scan your own data or data you are authorized
-        to use. You are responsible for ensuring that your use of this tool is
-        lawful.
+        Kontakt: <a href="mailto:hello@idradar.ch">hello@idradar.ch</a>
       </p>
 
-      <h2>14. Changes to this policy</h2>
+      <h2>13. Verantwortung der Nutzer</h2>
       <p>
-        We may update this Privacy Policy at any time to reflect technical,
-        operational, or legal changes. The latest version published on this page
-        applies.
+        Du darfst dieses Tool nur für deine eigenen Daten oder mit entsprechender
+        Berechtigung verwenden. Du bist selbst dafür verantwortlich, dass deine
+        Nutzung rechtmäßig ist.
+      </p>
+
+      <h2>14. Änderungen</h2>
+      <p>
+        Diese Datenschutzerklärung kann jederzeit aktualisiert werden, um
+        technische, betriebliche oder rechtliche Änderungen abzubilden. Es gilt
+        jeweils die auf dieser Seite veröffentlichte aktuelle Version.
       </p>
     </main>
   );
