@@ -1,52 +1,132 @@
 export default function PrivacyPage() {
   return (
-    <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 20px" }}>
+    <main style={{ maxWidth: 920, margin: "0 auto", padding: "40px 20px" }}>
       <h1>Privacy Policy</h1>
 
       <p>
-        This application ("ID Radar") is designed to analyze publicly available
-        information to estimate identity exposure risk.
+        This Privacy Policy explains how ID Radar processes personal data when you
+        use this website and its identity risk scanning features.
       </p>
 
-      <h2>Data Input</h2>
+      <h2>1. Controller</h2>
       <p>
-        You may enter personal data such as name, city, or username. This data is
-        processed only temporarily to perform the scan.
+        The controller responsible for data processing on this website is the
+        operator of ID Radar.
+      </p>
+      <p>
+        Contact: <a href="mailto:hello@idradar.ch">hello@idradar.ch</a>
       </p>
 
-      <h2>No Permanent Storage</h2>
+      <h2>2. What data you may enter</h2>
       <p>
-        We do not store your input data permanently. All scans are processed in
-        real-time and are not saved in a database.
+        You may voluntarily enter personal data such as:
+      </p>
+      <ul>
+        <li>first name</li>
+        <li>last name</li>
+        <li>city</li>
+        <li>username</li>
+        <li>email address</li>
+      </ul>
+
+      <h2>3. Purpose of processing</h2>
+      <p>
+        We process the submitted data only to generate an identity exposure and
+        identity risk assessment based on publicly available search results and
+        matching signals.
       </p>
 
-      <h2>Third-Party Services</h2>
+      <h2>4. No permanent storage of scan inputs</h2>
       <p>
-        This app uses external services (e.g. SerpAPI) to retrieve publicly
-        available search results. These services may process request data as part
-        of their functionality.
+        At the current stage of the product, scan inputs are processed only within
+        the request needed to generate the result. We do not intentionally store
+        the submitted scan fields in a database for long-term retention.
       </p>
 
-      <h2>Hosting</h2>
+      <h2>5. Public-source analysis</h2>
       <p>
-        This application is hosted on Vercel. Technical data such as IP address
-        may be processed for security and performance reasons.
+        The scanner evaluates publicly accessible information and search result
+        patterns. Results are estimates and do not represent verified facts about
+        identity theft, account ownership, or legal wrongdoing.
       </p>
 
-      <h2>No Tracking</h2>
+      <h2>6. Third-party services</h2>
       <p>
-        We currently do not use tracking cookies or analytics tools.
+        To provide the scanning functionality, this website may rely on third-party
+        infrastructure or service providers, such as:
+      </p>
+      <ul>
+        <li>hosting providers</li>
+        <li>search-result aggregation providers</li>
+        <li>technical infrastructure and security providers</li>
+      </ul>
+      <p>
+        These providers may process technical request data where necessary for
+        delivery, security, and functionality.
       </p>
 
-      <h2>Your Responsibility</h2>
+      <h2>7. Hosting and server logs</h2>
       <p>
-        You are responsible for ensuring that you only scan your own data or data
-        you are authorized to use.
+        This website is hosted via external infrastructure providers. As with most
+        websites, technical server data such as IP address, request timestamps,
+        browser information, and device-related metadata may be processed in server
+        logs for stability, security, and abuse prevention.
       </p>
 
-      <h2>Contact</h2>
+      <h2>8. Cookies and analytics</h2>
       <p>
-        For any privacy-related questions, please contact: hello@idradar.ch
+        At this stage, we do not intentionally use login accounts, user profiles,
+        or a permanent customer database for the scan function itself. If analytics,
+        cookies, or additional measurement tools are added later, this Privacy
+        Policy will be updated accordingly.
+      </p>
+
+      <h2>9. Disclosure to third parties</h2>
+      <p>
+        We do not sell your personal data. Data may be disclosed to service
+        providers only where this is technically necessary to operate the website
+        and scanning functionality.
+      </p>
+
+      <h2>10. International data processing</h2>
+      <p>
+        Depending on the infrastructure and third-party tools used, technical data
+        may be processed outside Switzerland. Where applicable, such processing is
+        limited to what is necessary to provide the service.
+      </p>
+
+      <h2>11. Data retention</h2>
+      <p>
+        We aim to keep personal data only for as long as necessary for the
+        respective purpose. Because scan inputs are currently designed to be
+        processed temporarily, long-term retention is not intended for those fields.
+        Technical logs may be retained for a limited period where necessary for
+        security and operations.
+      </p>
+
+      <h2>12. Your rights</h2>
+      <p>
+        Under applicable data protection law, you may have the right to request
+        information about personal data processed about you, and where applicable
+        request correction or deletion.
+      </p>
+      <p>
+        For such requests, contact:{" "}
+        <a href="mailto:hello@idradar.ch">hello@idradar.ch</a>
+      </p>
+
+      <h2>13. User responsibility</h2>
+      <p>
+        You may only use this tool to scan your own data or data you are authorized
+        to use. You are responsible for ensuring that your use of this tool is
+        lawful.
+      </p>
+
+      <h2>14. Changes to this policy</h2>
+      <p>
+        We may update this Privacy Policy at any time to reflect technical,
+        operational, or legal changes. The latest version published on this page
+        applies.
       </p>
     </main>
   );
