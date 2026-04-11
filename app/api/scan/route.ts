@@ -12,6 +12,7 @@ const SERP_API_KEY = process.env.SERP_API_KEY;
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const MIN_FORM_FILL_MS = 3000;
 
 // Temporäre In-Memory-IP-Sperre.
 // Funktioniert gut als Sofortschutz, ist auf Vercel aber nicht 100% dauerhaft
@@ -55,8 +56,10 @@ type TurnstileVerifyResponse = {
   hostname?: string;
 };
 
-type ScanRequestWithTurnstile = Partial<ScanRequestBody> & {
+type ScanRequestWithProtection = Partial<ScanRequestBody> & {
   turnstileToken?: string;
+  honeypot?: string;
+  formStartedAt?: number;
 };
 
 const EMPTY_SERP_RESPONSE: SerpResponse = {
@@ -375,8 +378,9 @@ function shorten(text: string, maxLength = 72) {
 }
 
 function sourceHint(result?: SerpOrganicResult) {
-  if (!result) return "";
-  return shorten(result.title || result.link || result.snippet || "", 68);
+  return !result
+    ? ""
+    : shorten(result.title || result.link || result.snippet || "", 68);
 }
 
 function isProfileLikePath(platformKey: string, url: string) {
@@ -738,10 +742,36 @@ function scoreStatus(score: number): FindingStatus {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as ScanRequestWithTurnstile;
+    const body = (await request.json()) as ScanRequestWithProtection;
+
+    const honeypot = body.honeypot?.trim() || "";
+    if (honeypot) {
+      return NextResponse.json(
+        { error: "Anfrage blockiert." },
+        { status: 400 }
+      );
+    }
+
+    const formStartedAt = Number(body.formStartedAt || 0);
+    if (!Number.isFinite(formStartedAt) || formStartedAt <= 0) {
+      return NextResponse.json(
+        { error: "Formular-Zeitstempel fehlt." },
+        { status: 400 }
+      );
+    }
+
+    const formFillDuration = Date.now() - formStartedAt;
+    if (formFillDuration < MIN_FORM_FILL_MS) {
+      return NextResponse.json(
+        {
+          error:
+            "Das Formular wurde zu schnell abgeschickt. Bitte versuche es erneut.",
+        },
+        { status: 400 }
+      );
+    }
 
     const turnstileToken = body.turnstileToken?.trim() || "";
-
     if (!turnstileToken) {
       return NextResponse.json(
         { error: "Die Sicherheitsprüfung fehlt." },
