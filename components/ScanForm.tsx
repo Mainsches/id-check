@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ScanRequestBody, ScanResponse } from "@/types/scan";
 
 type ScanFormProps = {
@@ -24,6 +24,29 @@ const initialState: ScanRequestBody = {
   email: "",
 };
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const BROWSER_SCAN_KEY = "idradar_last_scan_at";
+
+function getRemainingMs(lastScanAt: number) {
+  return Math.max(0, ONE_DAY_MS - (Date.now() - lastScanAt));
+}
+
+function formatRemainingTime(ms: number) {
+  const totalMinutes = Math.ceil(ms / 1000 / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours <= 0) {
+    return `${minutes} Minute${minutes === 1 ? "" : "n"}`;
+  }
+
+  if (minutes === 0) {
+    return `${hours} Stunde${hours === 1 ? "" : "n"}`;
+  }
+
+  return `${hours} Stunde${hours === 1 ? "" : "n"} und ${minutes} Minute${minutes === 1 ? "" : "n"}`;
+}
+
 export default function ScanForm({ onResult }: ScanFormProps) {
   const [formData, setFormData] = useState<ScanRequestBody>(initialState);
   const [loading, setLoading] = useState(false);
@@ -32,6 +55,9 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   const [confirmOwnership, setConfirmOwnership] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileReady, setTurnstileReady] = useState(false);
+  const [browserBlockedUntil, setBrowserBlockedUntil] = useState<number | null>(
+    null
+  );
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -60,6 +86,39 @@ export default function ScanForm({ onResult }: ScanFormProps) {
     };
   }, []);
 
+  useEffect(() => {
+    const raw = window.localStorage.getItem(BROWSER_SCAN_KEY);
+
+    if (!raw) return;
+
+    const lastScanAt = Number(raw);
+
+    if (!Number.isFinite(lastScanAt)) {
+      window.localStorage.removeItem(BROWSER_SCAN_KEY);
+      return;
+    }
+
+    const remainingMs = getRemainingMs(lastScanAt);
+
+    if (remainingMs > 0) {
+      setBrowserBlockedUntil(lastScanAt + ONE_DAY_MS);
+    } else {
+      window.localStorage.removeItem(BROWSER_SCAN_KEY);
+    }
+  }, []);
+
+  const browserLimitMessage = useMemo(() => {
+    if (!browserBlockedUntil) return "";
+
+    const remainingMs = browserBlockedUntil - Date.now();
+
+    if (remainingMs <= 0) return "";
+
+    return `Von diesem Browser wurde heute bereits ein Scan durchgeführt. Bitte versuche es in ${formatRemainingTime(
+      remainingMs
+    )} erneut.`;
+  }, [browserBlockedUntil]);
+
   function updateField<K extends keyof ScanRequestBody>(
     key: K,
     value: ScanRequestBody[K]
@@ -73,6 +132,11 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+
+    if (browserBlockedUntil && browserBlockedUntil > Date.now()) {
+      setError(browserLimitMessage);
+      return;
+    }
 
     if (!confirmOwnership) {
       setError(
@@ -116,6 +180,10 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         return;
       }
 
+      const now = Date.now();
+      window.localStorage.setItem(BROWSER_SCAN_KEY, String(now));
+      setBrowserBlockedUntil(now + ONE_DAY_MS);
+
       onResult(data as ScanResponse);
     } catch {
       setError("Netzwerkfehler. Bitte versuche es erneut.");
@@ -155,6 +223,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               value={formData.firstName}
               onChange={(e) => updateField("firstName", e.target.value)}
               required
+              disabled={Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())}
             />
           </div>
 
@@ -167,6 +236,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               value={formData.lastName}
               onChange={(e) => updateField("lastName", e.target.value)}
               required
+              disabled={Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())}
             />
           </div>
 
@@ -180,6 +250,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               placeholder="Zürich"
               value={formData.city}
               onChange={(e) => updateField("city", e.target.value)}
+              disabled={Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())}
             />
           </div>
 
@@ -193,6 +264,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               placeholder="max.muster"
               value={formData.username}
               onChange={(e) => updateField("username", e.target.value)}
+              disabled={Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())}
             />
           </div>
 
@@ -206,6 +278,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               placeholder="max@example.com"
               value={formData.email}
               onChange={(e) => updateField("email", e.target.value)}
+              disabled={Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())}
             />
           </div>
         </div>
@@ -239,6 +312,8 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               lineHeight: 1.55,
               cursor: "pointer",
               fontSize: 14,
+              opacity:
+                browserBlockedUntil && browserBlockedUntil > Date.now() ? 0.6 : 1,
             }}
           >
             <input
@@ -246,6 +321,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               checked={confirmOwnership}
               onChange={(e) => setConfirmOwnership(e.target.checked)}
               style={{ marginTop: 3 }}
+              disabled={Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())}
             />
             <span>
               Ich bestätige, dass ich meine eigenen Daten prüfe oder zur
@@ -262,6 +338,8 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               lineHeight: 1.55,
               cursor: "pointer",
               fontSize: 14,
+              opacity:
+                browserBlockedUntil && browserBlockedUntil > Date.now() ? 0.6 : 1,
             }}
           >
             <input
@@ -269,6 +347,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               checked={acceptTerms}
               onChange={(e) => setAcceptTerms(e.target.checked)}
               style={{ marginTop: 3 }}
+              disabled={Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())}
             />
             <span>
               Ich akzeptiere die{" "}
@@ -311,6 +390,8 @@ export default function ScanForm({ onResult }: ScanFormProps) {
             background:
               "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.025))",
             boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
+            opacity:
+              browserBlockedUntil && browserBlockedUntil > Date.now() ? 0.6 : 1,
           }}
         >
           <div
@@ -357,15 +438,26 @@ export default function ScanForm({ onResult }: ScanFormProps) {
             {turnstileToken
               ? "Sicherheitsprüfung erfolgreich."
               : turnstileReady
-                ? "Bitte bestätige die Sicherheitsprüfung."
-                : "Sicherheitsprüfung wird geladen..."}
+              ? "Bitte bestätige die Sicherheitsprüfung."
+              : "Sicherheitsprüfung wird geladen..."}
           </div>
         </div>
 
+        {browserLimitMessage ? <div className="error-box">{browserLimitMessage}</div> : null}
         {error ? <div className="error-box">{error}</div> : null}
 
-        <button type="submit" className="primary-button" disabled={loading}>
-          {loading ? "Analyse läuft..." : "Identität prüfen"}
+        <button
+          type="submit"
+          className="primary-button"
+          disabled={
+            loading || Boolean(browserBlockedUntil && browserBlockedUntil > Date.now())
+          }
+        >
+          {loading
+            ? "Analyse läuft..."
+            : browserBlockedUntil && browserBlockedUntil > Date.now()
+            ? "Heute bereits genutzt"
+            : "Identität prüfen"}
         </button>
       </form>
     </>

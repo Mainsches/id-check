@@ -11,6 +11,13 @@ import {
 const SERP_API_KEY = process.env.SERP_API_KEY;
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+// Temporäre In-Memory-IP-Sperre.
+// Funktioniert gut als Sofortschutz, ist auf Vercel aber nicht 100% dauerhaft
+// über Deployments / alle Instanzen hinweg. Für später: Redis / KV.
+const ipDailyScanStore = new Map<string, number>();
+
 type SerpOrganicResult = {
   title?: string;
   link?: string;
@@ -171,6 +178,40 @@ function dedupeResults(groups: SerpOrganicResult[][]): SerpOrganicResult[] {
   return merged;
 }
 
+function getClientIp(request: Request) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    return forwardedFor.split(",")[0]?.trim() || "unknown";
+  }
+
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) {
+    return realIp.trim();
+  }
+
+  return "unknown";
+}
+
+function getRemainingMs(lastScanAt: number) {
+  return Math.max(0, ONE_DAY_MS - (Date.now() - lastScanAt));
+}
+
+function formatRemainingTime(ms: number) {
+  const totalMinutes = Math.ceil(ms / 1000 / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours <= 0) {
+    return `${minutes} Minute${minutes === 1 ? "" : "n"}`;
+  }
+
+  if (minutes === 0) {
+    return `${hours} Stunde${hours === 1 ? "" : "n"}`;
+  }
+
+  return `${hours} Stunde${hours === 1 ? "" : "n"} und ${minutes} Minute${minutes === 1 ? "" : "n"}`;
+}
+
 async function fetchSerp(query: string): Promise<SerpResponse> {
   if (!SERP_API_KEY) {
     throw new Error("SERP_API_KEY fehlt");
@@ -198,15 +239,14 @@ async function verifyTurnstileToken(token: string, request: Request) {
     throw new Error("TURNSTILE_SECRET_KEY fehlt");
   }
 
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const remoteIp = forwardedFor?.split(",")[0]?.trim() || "";
+  const remoteIp = getClientIp(request);
 
   const body = new URLSearchParams({
     secret: TURNSTILE_SECRET_KEY,
     response: token,
   });
 
-  if (remoteIp) {
+  if (remoteIp && remoteIp !== "unknown") {
     body.append("remoteip", remoteIp);
   }
 
@@ -724,6 +764,24 @@ export async function POST(request: Request) {
       );
     }
 
+    const clientIp = getClientIp(request);
+    const lastIpScanAt = ipDailyScanStore.get(clientIp);
+
+    if (lastIpScanAt) {
+      const remainingMs = getRemainingMs(lastIpScanAt);
+
+      if (remainingMs > 0) {
+        return NextResponse.json(
+          {
+            error: `Von dieser Verbindung wurde heute bereits ein Scan durchgeführt. Bitte versuche es in ${formatRemainingTime(
+              remainingMs
+            )} erneut.`,
+          },
+          { status: 429 }
+        );
+      }
+    }
+
     const firstName = body.firstName?.trim() || "";
     const lastName = body.lastName?.trim() || "";
     const city = body.city?.trim() || "";
@@ -925,14 +983,14 @@ export async function POST(request: Request) {
                 usernameExposureCount === 1 ? "s" : ""
               } Ergebnis${usernameExposureCount === 1 ? "" : "se"} gefunden`
             : username
-              ? "Keine benutzernamenbezogenen Signale erkannt"
-              : "Nicht geprüft (kein Benutzername angegeben)",
+            ? "Keine benutzernamenbezogenen Signale erkannt"
+            : "Nicht geprüft (kein Benutzername angegeben)",
         status:
           usernameExposureCount > 0
             ? "danger"
             : username
-              ? "good"
-              : "neutral",
+            ? "good"
+            : "neutral",
       },
       {
         label: "Exact identity matches",
@@ -975,6 +1033,9 @@ export async function POST(request: Request) {
         emailProvided: Boolean(email),
       },
     };
+
+    // Erst nach erfolgreichem Scan speichern
+    ipDailyScanStore.set(clientIp, Date.now());
 
     return NextResponse.json(result, { status: 200 });
   } catch (error: unknown) {
