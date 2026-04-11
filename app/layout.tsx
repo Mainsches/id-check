@@ -17,52 +17,24 @@ export default function RootLayout({
       <body>
         {children}
 
-        <footer
-          style={{
-            maxWidth: 1100,
-            margin: "0 auto",
-            padding: "16px 20px 30px",
-            color: "rgba(255,255,255,0.58)",
-            fontSize: 14,
-            textAlign: "center",
-            letterSpacing: "0.01em",
-          }}
-        >
-          <a
-            href="/privacy"
-            style={{
-              color: "rgba(255,255,255,0.78)",
-              textDecoration: "none",
-              margin: "0 8px",
-              transition: "opacity 0.2s ease",
-            }}
-          >
-            Datenschutz
-          </a>
-          ·
-          <a
-            href="/terms"
-            style={{
-              color: "rgba(255,255,255,0.78)",
-              textDecoration: "none",
-              margin: "0 8px",
-              transition: "opacity 0.2s ease",
-            }}
-          >
-            Nutzungsbedingungen
-          </a>
-          ·
-          <a
-            href="/imprint"
-            style={{
-              color: "rgba(255,255,255,0.78)",
-              textDecoration: "none",
-              margin: "0 8px",
-              transition: "opacity 0.2s ease",
-            }}
-          >
-            Impressum
-          </a>
+        <footer className="site-footer">
+          <nav className="site-footer-nav" aria-label="Rechtliches">
+            <a className="site-footer-link" href="/privacy">
+              Datenschutz
+            </a>
+            <span className="site-footer-sep" aria-hidden="true">
+              ·
+            </span>
+            <a className="site-footer-link" href="/terms">
+              Nutzungsbedingungen
+            </a>
+            <span className="site-footer-sep" aria-hidden="true">
+              ·
+            </span>
+            <a className="site-footer-link" href="/imprint">
+              Impressum
+            </a>
+          </nav>
         </footer>
       </body>
     </html>
