@@ -9,6 +9,7 @@ import {
 } from "@/types/scan";
 
 const SERP_API_KEY = process.env.SERP_API_KEY;
+const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
 
 type SerpOrganicResult = {
   title?: string;
@@ -38,6 +39,17 @@ type PlatformAssessment = {
   detail: string;
   url?: string;
   status: FindingStatus;
+};
+
+type TurnstileVerifyResponse = {
+  success: boolean;
+  "error-codes"?: string[];
+  challenge_ts?: string;
+  hostname?: string;
+};
+
+type ScanRequestWithTurnstile = Partial<ScanRequestBody> & {
+  turnstileToken?: string;
 };
 
 const EMPTY_SERP_RESPONSE: SerpResponse = {
@@ -181,6 +193,43 @@ async function fetchSerp(query: string): Promise<SerpResponse> {
   return (await response.json()) as SerpResponse;
 }
 
+async function verifyTurnstileToken(token: string, request: Request) {
+  if (!TURNSTILE_SECRET_KEY) {
+    throw new Error("TURNSTILE_SECRET_KEY fehlt");
+  }
+
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const remoteIp = forwardedFor?.split(",")[0]?.trim() || "";
+
+  const body = new URLSearchParams({
+    secret: TURNSTILE_SECRET_KEY,
+    response: token,
+  });
+
+  if (remoteIp) {
+    body.append("remoteip", remoteIp);
+  }
+
+  const response = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Turnstile-Validierung fehlgeschlagen: ${text}`);
+  }
+
+  return (await response.json()) as TurnstileVerifyResponse;
+}
+
 function estimateVisibilityScore(totalEstimatedResults: number): number {
   if (totalEstimatedResults <= 0) return 0;
   if (totalEstimatedResults >= 10_000_000) return 10;
@@ -297,7 +346,11 @@ function isProfileLikePath(platformKey: string, url: string) {
     case "linkedin":
       return path.startsWith("/in/") || path.startsWith("/pub/");
     case "instagram":
-      return /^\/[a-z0-9._]+\/?$/.test(path) && !path.startsWith("/p/") && !path.startsWith("/reel/");
+      return (
+        /^\/[a-z0-9._]+\/?$/.test(path) &&
+        !path.startsWith("/p/") &&
+        !path.startsWith("/reel/")
+      );
     case "facebook":
       return (
         path.startsWith("/people/") ||
@@ -312,9 +365,17 @@ function isProfileLikePath(platformKey: string, url: string) {
     case "tiktok":
       return /^\/@[a-z0-9._]+\/?$/.test(path);
     case "x":
-      return /^\/[a-z0-9_]+\/?$/.test(path) && !path.startsWith("/home") && !path.startsWith("/search");
+      return (
+        /^\/[a-z0-9_]+\/?$/.test(path) &&
+        !path.startsWith("/home") &&
+        !path.startsWith("/search")
+      );
     case "github":
-      return /^\/[a-z0-9-]+\/?$/.test(path) && !path.startsWith("/topics") && !path.startsWith("/orgs");
+      return (
+        /^\/[a-z0-9-]+\/?$/.test(path) &&
+        !path.startsWith("/topics") &&
+        !path.startsWith("/orgs")
+      );
     case "reddit":
       return path.startsWith("/user/") || path.startsWith("/u/");
     default:
@@ -322,7 +383,10 @@ function isProfileLikePath(platformKey: string, url: string) {
   }
 }
 
-function isObviouslyNonProfileContext(platformKey: string, result: SerpOrganicResult) {
+function isObviouslyNonProfileContext(
+  platformKey: string,
+  result: SerpOrganicResult
+) {
   const text = textOf(result);
   const path = getPath(result.link || "");
 
@@ -396,10 +460,8 @@ function assessPlatformSignal(params: {
   for (const result of results) {
     if (!isFromDomain(result, platform.domain)) continue;
 
-    const title = normalize(result.title || "");
-    const snippet = normalize(result.snippet || "");
-    const link = normalize(result.link || "");
     const fullText = textOf(result);
+    const link = normalize(result.link || "");
 
     const exactName = fullText.includes(normalize(fullName));
     const userHit = username ? fullText.includes(normalize(username)) : false;
@@ -461,13 +523,21 @@ function assessPlatformSignal(params: {
     url = bestStrong?.link;
 
     if (exactNameHit && usernameHit) {
-      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und deines Benutzernamens gefunden.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und deines Benutzernamens gefunden.${
+        bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""
+      }`;
     } else if (exactNameHit && cityHit) {
-      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und deiner Stadt gefunden.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und deiner Stadt gefunden.${
+        bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""
+      }`;
     } else if (exactNameHit && profileLikeUrlHit) {
-      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und einer profiltypischen URL gefunden.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Es wurde ein starker öffentlicher Treffer anhand deines vollständigen Namens und einer profiltypischen URL gefunden.${
+        bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""
+      }`;
     } else {
-      detail = `Mehrere öffentliche Hinweise deuten auf ein wahrscheinliches echtes Profil hin.${bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""}`;
+      detail = `Mehrere öffentliche Hinweise deuten auf ein wahrscheinliches echtes Profil hin.${
+        bestStrong ? ` Quelle: ${sourceHint(bestStrong)}` : ""
+      }`;
     }
   } else if (strength === 1) {
     value = "Möglicher Treffer";
@@ -475,11 +545,17 @@ function assessPlatformSignal(params: {
     url = bestWeak?.link;
 
     if (exactNameHit && profileLikeUrlHit) {
-      detail = `Es gibt Hinweise auf einen möglichen Profil-Treffer anhand deines Namens und einer profiltypischen URL.${bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Es gibt Hinweise auf einen möglichen Profil-Treffer anhand deines Namens und einer profiltypischen URL.${
+        bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""
+      }`;
     } else if (usernameHit) {
-      detail = `Es gibt Hinweise auf einen möglichen Profil-Treffer anhand eines benutzernamenähnlichen Ergebnisses.${bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Es gibt Hinweise auf einen möglichen Profil-Treffer anhand eines benutzernamenähnlichen Ergebnisses.${
+        bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""
+      }`;
     } else {
-      detail = `Es wurde ein schwacher profilähnlicher öffentlicher Treffer gefunden, der aber nicht bestätigt ist.${bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""}`;
+      detail = `Es wurde ein schwacher profilähnlicher öffentlicher Treffer gefunden, der aber nicht bestätigt ist.${
+        bestWeak ? ` Quelle: ${sourceHint(bestWeak)}` : ""
+      }`;
     }
   }
 
@@ -603,7 +679,13 @@ function buildSummary(params: {
 
 ${plainSummary}
 
-Es wurden etwa ${totalEstimatedResults.toLocaleString()} indexierte Ergebnisse gefunden, dazu ${platformSignalsStrong} starke Plattform-Treffer${platformSignalsStrong === 1 ? "" : ""}, ${platformSignalsWeak} schwächere Plattform-Treffer${platformSignalsWeak === 1 ? "" : ""}, ${directoryListingsCount} Verzeichnis-Signal${directoryListingsCount === 1 ? "" : "e"}, ${usernameExposureCount} benutzernamenbezogene Signal${usernameExposureCount === 1 ? "" : "e"}, ${exactNameMatches} starke Identitätstreffer und ${cityMentions} stadtbezogene Signal${cityMentions === 1 ? "" : "e"}.
+Es wurden etwa ${totalEstimatedResults.toLocaleString()} indexierte Ergebnisse gefunden, dazu ${platformSignalsStrong} starke Plattform-Treffer, ${platformSignalsWeak} schwächere Plattform-Treffer, ${directoryListingsCount} Verzeichnis-Signal${
+    directoryListingsCount === 1 ? "" : "e"
+  }, ${usernameExposureCount} benutzernamenbezogene Signal${
+    usernameExposureCount === 1 ? "" : "e"
+  }, ${exactNameMatches} starke Identitätstreffer und ${cityMentions} stadtbezogene Signal${
+    cityMentions === 1 ? "" : "e"
+  }.
 
 Sichtbarkeitsgewichtung: ${visibilityScore}/10.`;
 }
@@ -616,7 +698,31 @@ function scoreStatus(score: number): FindingStatus {
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as Partial<ScanRequestBody>;
+    const body = (await request.json()) as ScanRequestWithTurnstile;
+
+    const turnstileToken = body.turnstileToken?.trim() || "";
+
+    if (!turnstileToken) {
+      return NextResponse.json(
+        { error: "Die Sicherheitsprüfung fehlt." },
+        { status: 400 }
+      );
+    }
+
+    const turnstileVerification = await verifyTurnstileToken(
+      turnstileToken,
+      request
+    );
+
+    if (!turnstileVerification.success) {
+      return NextResponse.json(
+        {
+          error:
+            "Die Sicherheitsprüfung konnte nicht bestätigt werden. Bitte versuche es erneut.",
+        },
+        { status: 403 }
+      );
+    }
 
     const firstName = body.firstName?.trim() || "";
     const lastName = body.lastName?.trim() || "";
@@ -663,7 +769,9 @@ export async function POST(request: Request) {
     ] = await Promise.all<SerpResponse>([
       fetchSerp(exactNameQuery),
       cityQuery ? fetchSerp(cityQuery) : Promise.resolve(EMPTY_SERP_RESPONSE),
-      usernameQuery ? fetchSerp(usernameQuery) : Promise.resolve(EMPTY_SERP_RESPONSE),
+      usernameQuery
+        ? fetchSerp(usernameQuery)
+        : Promise.resolve(EMPTY_SERP_RESPONSE),
       usernameComboQuery
         ? fetchSerp(usernameComboQuery)
         : Promise.resolve(EMPTY_SERP_RESPONSE),
@@ -803,7 +911,9 @@ export async function POST(request: Request) {
         label: "Directory / people-search pages",
         value:
           directoryListingsCount > 0
-            ? `${directoryListingsCount} Verzeichnis-Signal${directoryListingsCount === 1 ? "" : "e"} erkannt`
+            ? `${directoryListingsCount} Verzeichnis-Signal${
+                directoryListingsCount === 1 ? "" : "e"
+              } erkannt`
             : "Keine Verzeichnis-Signale erkannt",
         status: directoryListingsCount > 0 ? "danger" : "good",
       },
@@ -811,16 +921,18 @@ export async function POST(request: Request) {
         label: "Username reuse exposure",
         value:
           usernameExposureCount > 0
-            ? `${usernameExposureCount} benutzernamenbezogene${usernameExposureCount === 1 ? "s" : ""} Ergebnis${usernameExposureCount === 1 ? "" : "se"} gefunden`
+            ? `${usernameExposureCount} benutzernamenbezogene${
+                usernameExposureCount === 1 ? "s" : ""
+              } Ergebnis${usernameExposureCount === 1 ? "" : "se"} gefunden`
             : username
-            ? "Keine benutzernamenbezogenen Signale erkannt"
-            : "Nicht geprüft (kein Benutzername angegeben)",
+              ? "Keine benutzernamenbezogenen Signale erkannt"
+              : "Nicht geprüft (kein Benutzername angegeben)",
         status:
           usernameExposureCount > 0
             ? "danger"
             : username
-            ? "good"
-            : "neutral",
+              ? "good"
+              : "neutral",
       },
       {
         label: "Exact identity matches",
@@ -871,9 +983,6 @@ export async function POST(request: Request) {
 
     console.error("Scan-Fehler:", message);
 
-    return NextResponse.json(
-      { error: message },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

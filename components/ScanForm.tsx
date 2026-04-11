@@ -357,8 +357,8 @@ export default function ScanForm({ onResult }: ScanFormProps) {
             {turnstileToken
               ? "Sicherheitsprüfung erfolgreich."
               : turnstileReady
-              ? "Bitte bestätige die Sicherheitsprüfung."
-              : "Sicherheitsprüfung wird geladen..."}
+                ? "Bitte bestätige die Sicherheitsprüfung."
+                : "Sicherheitsprüfung wird geladen..."}
           </div>
         </div>
 
