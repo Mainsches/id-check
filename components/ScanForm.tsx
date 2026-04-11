@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { ScanRequestBody, ScanResponse } from "@/types/scan";
 
 type ScanFormProps = {
@@ -24,8 +24,6 @@ const initialState: ScanRequestBody = {
   email: "",
 };
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-const BROWSER_SCAN_KEY = "idradar_last_scan_at";
 
 const LOADING_MESSAGES = [
   "Analysiere öffentliche Daten...",
@@ -35,26 +33,6 @@ const LOADING_MESSAGES = [
 ];
 
 type FieldErrorKey = "firstName" | "lastName" | "city";
-
-function getRemainingMs(lastScanAt: number) {
-  return Math.max(0, ONE_DAY_MS - (Date.now() - lastScanAt));
-}
-
-function formatRemainingTime(ms: number) {
-  const totalMinutes = Math.ceil(ms / 1000 / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours <= 0) {
-    return `${minutes} Minute${minutes === 1 ? "" : "n"}`;
-  }
-
-  if (minutes === 0) {
-    return `${hours} Stunde${hours === 1 ? "" : "n"}`;
-  }
-
-  return `${hours} Stunde${hours === 1 ? "" : "n"} und ${minutes} Minute${minutes === 1 ? "" : "n"}`;
-}
 
 export default function ScanForm({ onResult }: ScanFormProps) {
   const [formData, setFormData] = useState<ScanRequestBody>(initialState);
@@ -67,9 +45,6 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   const [confirmOwnership, setConfirmOwnership] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [turnstileReady, setTurnstileReady] = useState(false);
-  const [browserBlockedUntil, setBrowserBlockedUntil] = useState<number | null>(
-    null
-  );
   const [formStartedAt] = useState<number>(Date.now());
   const [honeypot, setHoneypot] = useState("");
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
@@ -101,26 +76,6 @@ export default function ScanForm({ onResult }: ScanFormProps) {
     };
   }, []);
 
-  useEffect(() => {
-    const raw = window.localStorage.getItem(BROWSER_SCAN_KEY);
-
-    if (!raw) return;
-
-    const lastScanAt = Number(raw);
-
-    if (!Number.isFinite(lastScanAt)) {
-      window.localStorage.removeItem(BROWSER_SCAN_KEY);
-      return;
-    }
-
-    const remainingMs = getRemainingMs(lastScanAt);
-
-    if (remainingMs > 0) {
-      setBrowserBlockedUntil(lastScanAt + ONE_DAY_MS);
-    } else {
-      window.localStorage.removeItem(BROWSER_SCAN_KEY);
-    }
-  }, []);
 
   useEffect(() => {
     if (!loading) {
@@ -135,23 +90,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
     return () => window.clearInterval(id);
   }, [loading]);
 
-  const browserLimitMessage = useMemo(() => {
-    if (!browserBlockedUntil) return "";
-
-    const remainingMs = browserBlockedUntil - Date.now();
-
-    if (remainingMs <= 0) return "";
-
-    return `Von diesem Browser wurde heute bereits ein Scan durchgeführt. Bitte versuche es in ${formatRemainingTime(
-      remainingMs
-    )} erneut.`;
-  }, [browserBlockedUntil]);
-
-  const isBrowserBlocked = Boolean(
-    browserBlockedUntil && browserBlockedUntil > Date.now()
-  );
-
-  const inputsDisabled = loading || isBrowserBlocked;
+  const inputsDisabled = loading;
 
   function clearFieldError(key: FieldErrorKey) {
     setFieldErrors((prev) => {
@@ -199,11 +138,6 @@ export default function ScanForm({ onResult }: ScanFormProps) {
     event.preventDefault();
     setError("");
     setFieldErrors({});
-
-    if (isBrowserBlocked) {
-      setError(browserLimitMessage);
-      return;
-    }
 
     if (honeypot.trim()) {
       setError("Anfrage blockiert.");
@@ -257,10 +191,6 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         setError(data?.error || "Beim Scan ist ein Fehler aufgetreten.");
         return;
       }
-
-      const now = Date.now();
-      window.localStorage.setItem(BROWSER_SCAN_KEY, String(now));
-      setBrowserBlockedUntil(now + ONE_DAY_MS);
 
       onResult(data as ScanResponse);
     } catch {
@@ -471,7 +401,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
           </label>
         </div>
 
-        <div className={`scan-form-turnstile ${isBrowserBlocked ? "is-muted" : ""}`}>
+        <div className="scan-form-turnstile">
           <div className="scan-form-turnstile-title">Sicherheitsprüfung</div>
 
           {siteKey ? (
@@ -502,7 +432,6 @@ export default function ScanForm({ onResult }: ScanFormProps) {
           </div>
         </div>
 
-        {browserLimitMessage ? <div className="error-box">{browserLimitMessage}</div> : null}
         {error ? <div className="error-box">{error}</div> : null}
 
         <div className="scan-form-submit-block">
@@ -518,7 +447,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               <button
                 type="submit"
                 className="primary-button scan-form-cta"
-                disabled={isBrowserBlocked}
+                disabled={loading}
               >
                 Identität prüfen
               </button>

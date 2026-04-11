@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formatRemainingTime, hasRedisRateLimitConfig, reserveDailyScan } from "@/lib/daily-scan-limit";
 import {
   ScanRequestBody,
   ScanResponse,
@@ -11,13 +12,7 @@ import {
 const SERP_API_KEY = process.env.SERP_API_KEY;
 const TURNSTILE_SECRET_KEY = process.env.TURNSTILE_SECRET_KEY;
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_FORM_FILL_MS = 3000;
-
-// Temporäre In-Memory-IP-Sperre.
-// Funktioniert gut als Sofortschutz, ist auf Vercel aber nicht 100% dauerhaft
-// über Deployments / alle Instanzen hinweg. Für später: Redis / KV.
-const ipDailyScanStore = new Map<string, number>();
 
 type SerpOrganicResult = {
   title?: string;
@@ -195,25 +190,6 @@ function getClientIp(request: Request) {
   return "unknown";
 }
 
-function getRemainingMs(lastScanAt: number) {
-  return Math.max(0, ONE_DAY_MS - (Date.now() - lastScanAt));
-}
-
-function formatRemainingTime(ms: number) {
-  const totalMinutes = Math.ceil(ms / 1000 / 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-
-  if (hours <= 0) {
-    return `${minutes} Minute${minutes === 1 ? "" : "n"}`;
-  }
-
-  if (minutes === 0) {
-    return `${hours} Stunde${hours === 1 ? "" : "n"}`;
-  }
-
-  return `${hours} Stunde${hours === 1 ? "" : "n"} und ${minutes} Minute${minutes === 1 ? "" : "n"}`;
-}
 
 async function fetchSerp(query: string): Promise<SerpResponse> {
   if (!SERP_API_KEY) {
@@ -795,22 +771,6 @@ export async function POST(request: Request) {
     }
 
     const clientIp = getClientIp(request);
-    const lastIpScanAt = ipDailyScanStore.get(clientIp);
-
-    if (lastIpScanAt) {
-      const remainingMs = getRemainingMs(lastIpScanAt);
-
-      if (remainingMs > 0) {
-        return NextResponse.json(
-          {
-            error: `Von dieser Verbindung wurde heute bereits ein Scan durchgeführt. Bitte versuche es in ${formatRemainingTime(
-              remainingMs
-            )} erneut.`,
-          },
-          { status: 429 }
-        );
-      }
-    }
 
     const firstName = body.firstName?.trim() || "";
     const lastName = body.lastName?.trim() || "";
@@ -829,6 +789,24 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Bitte gib eine gültige E-Mail-Adresse ein." },
         { status: 400 }
+      );
+    }
+
+    const dailyLimitReservation = await reserveDailyScan(clientIp);
+
+    if (!dailyLimitReservation.allowed) {
+      return NextResponse.json(
+        {
+          error: `Von dieser Verbindung wurde heute bereits ein Scan durchgeführt. Bitte versuche es in ${formatRemainingTime(
+            dailyLimitReservation.remainingMs
+          )} erneut.`,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(dailyLimitReservation.retryAfterSeconds),
+          },
+        }
       );
     }
 
@@ -1064,10 +1042,12 @@ export async function POST(request: Request) {
       },
     };
 
-    // Erst nach erfolgreichem Scan speichern
-    ipDailyScanStore.set(clientIp, Date.now());
-
-    return NextResponse.json(result, { status: 200 });
+    return NextResponse.json(result, {
+      status: 200,
+      headers: {
+        "X-RateLimit-Storage": hasRedisRateLimitConfig() ? "redis" : "memory",
+      },
+    });
   } catch (error: unknown) {
     const message =
       error instanceof Error ? error.message : "Unbekannter Fehler";
