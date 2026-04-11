@@ -72,14 +72,15 @@ export default function HomePage() {
               </div>
 
               <h1>
-                Verstehe, wie leicht deine Identität online
+                Finde heraus, wie leicht deine Identität online
                 <span> gefunden und verknüpft werden kann.</span>
               </h1>
 
               <p className="landing-lead">
-                ID Radar analysiert öffentlich sichtbare Spuren, mögliche
-                Profil-Treffer und wiedererkennbare Identitätsmuster – damit du
-                Risiken früher erkennst, bevor sie problematisch werden.
+                Schon wenige öffentliche Angaben können reichen, damit Profile,
+                Suchtreffer und persönliche Informationen miteinander verbunden
+                werden. ID Radar zeigt dir, wie sichtbar und verknüpfbar deine
+                Identität im Internet aktuell ist.
               </p>
 
               <div className="landing-actions">
@@ -93,16 +94,18 @@ export default function HomePage() {
               </div>
 
               <div className="landing-hero-footnotes">
-                <span>1 Scan pro Tag</span>
+                <span>1 kostenloser Scan pro Tag</span>
                 <span>Keine dauerhafte Speicherung</span>
-                <span>Öffentliche Quellen</span>
+                <span>Analyse öffentlicher Hinweise</span>
               </div>
             </div>
 
             <div className="landing-hero-preview">
               <div className="landing-preview-card">
                 <div className="landing-preview-top">
-                  <span className="landing-preview-label">Beispielhafte Auswertung</span>
+                  <span className="landing-preview-label">
+                    Beispielhafte Auswertung
+                  </span>
                   <span className="landing-preview-status">Live Analyse</span>
                 </div>
 
@@ -117,8 +120,8 @@ export default function HomePage() {
                   <div className="landing-preview-score-copy">
                     <h3>Niedriges bis mittleres Risiko</h3>
                     <p>
-                      Öffentliche Sichtbarkeit ist vorhanden, aber nur begrenzt
-                      plattformübergreifend verknüpfbar.
+                      Öffentliche Hinweise sind sichtbar, aber derzeit nur
+                      teilweise plattformübergreifend miteinander verknüpfbar.
                     </p>
                   </div>
                 </div>
@@ -126,7 +129,7 @@ export default function HomePage() {
                 <div className="landing-preview-list">
                   <div className="landing-preview-item">
                     <span>Öffentliche Sichtbarkeit</span>
-                    <strong>Erkannt</strong>
+                    <strong>Vorhanden</strong>
                   </div>
                   <div className="landing-preview-item">
                     <span>Plattform-Signale</span>
@@ -147,8 +150,9 @@ export default function HomePage() {
             <span className="landing-section-kicker">So funktioniert es</span>
             <h2>Ein schneller Scan mit verständlicher Risikoeinschätzung</h2>
             <p>
-              Der Fokus liegt nicht nur auf Sichtbarkeit, sondern darauf, wie
-              leicht einzelne Informationen miteinander verknüpft werden können.
+              ID Radar prüft nicht nur, ob du online sichtbar bist – sondern vor
+              allem, wie leicht einzelne Informationen über dich zusammengeführt
+              werden können.
             </p>
           </div>
 
@@ -157,8 +161,8 @@ export default function HomePage() {
               <div className="landing-card-index">01</div>
               <h3>Öffentliche Treffer prüfen</h3>
               <p>
-                Name, Stadt, Benutzername und weitere Signale werden mit
-                öffentlich sichtbaren Treffern abgeglichen.
+                Der Scan wertet sichtbare Hinweise zu Name, Stadt,
+                Benutzernamen und möglichen Profil-Treffern aus.
               </p>
             </article>
 
@@ -166,8 +170,8 @@ export default function HomePage() {
               <div className="landing-card-index">02</div>
               <h3>Verknüpfbarkeit bewerten</h3>
               <p>
-                Entscheidend ist, wie einfach ein Profil, Suchtreffer oder eine
-                Identität plattformübergreifend zusammengeführt werden kann.
+                Entscheidend ist, ob dieselbe Identität über mehrere Quellen und
+                Plattformen hinweg leichter erkannt werden kann.
               </p>
             </article>
 
@@ -175,8 +179,8 @@ export default function HomePage() {
               <div className="landing-card-index">03</div>
               <h3>Klare Empfehlungen erhalten</h3>
               <p>
-                Du erhältst eine kompakte Bewertung und konkrete Hinweise, wo du
-                deine Sichtbarkeit reduzieren kannst.
+                Du bekommst eine verständliche Einschätzung und konkrete Hinweise,
+                wie du deine öffentliche Sichtbarkeit besser kontrollieren kannst.
               </p>
             </article>
           </div>
@@ -187,18 +191,18 @@ export default function HomePage() {
             <div className="landing-split-copy">
               <span className="landing-section-kicker">Warum wichtig</span>
               <h2>
-                Schon wenige Angaben können reichen, um digitale Identitäten
-                zusammenzuführen
+                Schon wenige Angaben können reichen, um dieselbe Person auf
+                mehreren Plattformen zu erkennen
               </h2>
               <p>
-                Wiederverwendete Benutzernamen, Ortsangaben und öffentliche
-                Profile machen es oft leichter, dieselbe Person auf mehreren
-                Plattformen zu erkennen und zu verknüpfen.
+                Name, Stadt, wiederverwendete Benutzernamen und öffentliche
+                Profile ergeben zusammen oft mehr, als man im ersten Moment denkt.
+                Genau daraus entsteht digitale Verknüpfbarkeit.
               </p>
 
               <ul className="landing-list">
-                <li>Name und Stadt ergeben oft bereits starke Zuordnungssignale</li>
-                <li>Wiederverwendete Benutzernamen erhöhen die Erkennbarkeit</li>
+                <li>Name und Stadt können bereits starke Zuordnungssignale erzeugen</li>
+                <li>Wiederverwendete Benutzernamen machen Profile leichter auffindbar</li>
                 <li>Mehrere kleine Hinweise ergeben zusammen ein größeres Risiko</li>
               </ul>
             </div>
@@ -219,7 +223,7 @@ export default function HomePage() {
                 </div>
                 <div className="landing-side-panel-row">
                   <span>Namensmuster</span>
-                  <strong>Verknüpfbar</strong>
+                  <strong>Wiedererkennbar</strong>
                 </div>
                 <div className="landing-side-panel-row">
                   <span>Standortbezug</span>
@@ -233,10 +237,10 @@ export default function HomePage() {
         <section id="vertrauen" className="landing-section">
           <div className="landing-section-head">
             <span className="landing-section-kicker">Vertrauen</span>
-            <h2>Zurückhaltend aufgebaut, mit Fokus auf Klarheit und Schutz</h2>
+            <h2>Zurückhaltend entwickelt, weil Identität ein sensibles Thema ist</h2>
             <p>
-              ID Radar soll nachvollziehbar, vorsichtig und vertrauenswürdig
-              wirken – gerade weil das Thema Identität sensibel ist.
+              ID Radar soll verständlich, vertrauenswürdig und datensparsam wirken
+              – mit Fokus auf Klarheit statt unnötiger Komplexität.
             </p>
           </div>
 
@@ -244,8 +248,8 @@ export default function HomePage() {
             <article className="landing-card landing-card-compact landing-card-polished">
               <h3>Keine dauerhafte Speicherung</h3>
               <p>
-                Scan-Eingaben werden nur für die laufende Anfrage verarbeitet und
-                nicht dauerhaft als Profildaten gespeichert.
+                Deine Scan-Eingaben werden nur für die laufende Anfrage verarbeitet
+                und nicht dauerhaft als persönliches Profil gespeichert.
               </p>
             </article>
 
@@ -258,10 +262,10 @@ export default function HomePage() {
             </article>
 
             <article className="landing-card landing-card-compact landing-card-polished">
-              <h3>Missbrauchsschutz integriert</h3>
+              <h3>Missbrauchsschutz aktiv</h3>
               <p>
                 Turnstile, Tageslimit und zusätzliche Schutzmechanismen helfen,
-                unnötige oder automatisierte Abfragen einzuschränken.
+                automatisierte oder unnötige Anfragen einzuschränken.
               </p>
             </article>
           </div>
@@ -272,8 +276,8 @@ export default function HomePage() {
             <span className="landing-section-kicker">Jetzt testen</span>
             <h2>Starte mit einer ersten Einschätzung deiner Online-Sichtbarkeit</h2>
             <p>
-              Der Scan dauert nur kurz und zeigt dir, wo potenzielle
-              Verknüpfungen und öffentliche Identitätssignale sichtbar werden.
+              In wenigen Sekunden erhältst du eine erste Einschätzung dazu, wie
+              leicht deine öffentliche Identität erkannt und verknüpft werden kann.
             </p>
 
             <div className="landing-final-actions">
