@@ -577,6 +577,8 @@ input {
   .result-header h2 {
     line-height: 1;
   }
+}
+
 /* =========================
    HOMEPAGE POLISH V2
 ========================= */
@@ -764,6 +766,14 @@ input {
 
 .landing-cta {
   min-width: 210px;
+  background: linear-gradient(135deg, #f7e29a 0%, #d4af37 52%, #b8891b 100%);
+  color: #16120a;
+  border-color: rgba(255, 224, 145, 0.42);
+  box-shadow: 0 12px 34px rgba(212, 175, 55, 0.22);
+}
+
+.landing-cta:hover {
+  box-shadow: 0 16px 40px rgba(212, 175, 55, 0.28);
 }
 
 .landing-secondary-link {
