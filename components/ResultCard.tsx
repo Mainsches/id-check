@@ -13,7 +13,7 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     return {
       title: "Hohes Identitätsrisiko",
       subtitle:
-        "Mehrere Signale deuten darauf hin, dass deine Identität leichter verknüpft oder missbraucht werden könnte.",
+        "Mehrere Signale deuten darauf hin, dass deine Identität öffentlich leichter erkannt und missbraucht werden könnte.",
       mood: "Kritisch",
       summaryBadge: "HOHES RISIKO",
     };
@@ -23,7 +23,7 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
     return {
       title: "Mittleres Identitätsrisiko",
       subtitle:
-        "Einige öffentliche Informationen lassen sich weiterhin über mehrere Quellen hinweg zusammenführen.",
+        "Einige öffentliche Informationen lassen sich bereits miteinander verbinden und über mehrere Quellen hinweg zuordnen.",
       mood: "Beobachten",
       summaryBadge: "MITTLERES RISIKO",
     };
@@ -32,8 +32,8 @@ function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
   return {
     title: "Niedriges Identitätsrisiko",
     subtitle:
-      "Es wurden nur wenige öffentlich erkennbare Signale gefunden, die auf ein erhöhtes Risiko hindeuten.",
-    mood: riskScore <= 15 ? "Geringe Auffälligkeit" : "Relativ sicher",
+      "Es wurden aktuell nur begrenzte öffentliche Hinweise gefunden, die auf ein erhöhtes Risiko hindeuten.",
+    mood: riskScore <= 15 ? "Niedrige Auffälligkeit" : "Relativ sicher",
     summaryBadge: "NIEDRIGES RISIKO",
   };
 }
@@ -96,7 +96,7 @@ function isPlatformFinding(label: string) {
 }
 
 function platformBadgeText(finding: FindingItem) {
-  if (finding.status === "danger") return "Sehr wahrscheinliches Profil";
+  if (finding.status === "danger") return "Starker Treffer";
   if (finding.status === "warning") return "Möglicher Treffer";
   return "Kein relevanter Treffer";
 }
@@ -136,7 +136,6 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
   } as React.CSSProperties;
 
   const topChips = result.findings.slice(0, 5);
-
   const coreFindings = result.findings.filter((item) => !isPlatformFinding(item.label));
   const platformFindings = result.findings.filter((item) => isPlatformFinding(item.label));
 
@@ -156,13 +155,13 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           <h2>Dein Identitätsrisiko im Überblick</h2>
         </div>
 
-        <button className="secondary-button" onClick={onReset}>
+        <button className="secondary-button secondary-button-gold" onClick={onReset}>
           Neuer Scan
         </button>
       </div>
 
-      <div className={`score-panel score-panel-vnext ${riskClass}`}>
-        <div className={`score-circle ${riskClass}`} style={scoreStyle}>
+      <div className={`score-panel score-panel-vnext score-panel-premium ${riskClass}`}>
+        <div className={`score-circle score-circle-premium ${riskClass}`} style={scoreStyle}>
           <div className="score-circle-inner">
             <span className="score-number">{result.riskScore}</span>
             <span className="score-total">/100</span>
@@ -171,14 +170,15 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
 
         <div className="score-meta">
           <div className="score-meta-top">
-            <p className={`risk-badge ${riskClass}`}>
+            <p className={`risk-badge risk-badge-premium ${riskClass}`}>
               {result.riskLevel === "High"
                 ? "Hohes Risiko"
                 : result.riskLevel === "Medium"
                 ? "Mittleres Risiko"
                 : "Niedriges Risiko"}
             </p>
-            <span className={`signal-chip signal-chip-main ${riskClass}`}>
+
+            <span className={`signal-chip signal-chip-main signal-chip-premium ${riskClass}`}>
               {riskMeta.mood}
             </span>
           </div>
@@ -190,7 +190,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
             {topChips.map((finding) => (
               <span
                 key={finding.label}
-                className={`signal-chip ${getFindingTone(finding)}`}
+                className={`signal-chip signal-chip-soft ${getFindingTone(finding)}`}
               >
                 {formatFindingShort(finding.label)}
               </span>
@@ -198,9 +198,9 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           </div>
 
           <div className="score-bar-wrap">
-            <div className="score-bar-track">
+            <div className="score-bar-track score-bar-track-premium">
               <div
-                className={`score-bar-fill ${riskClass}`}
+                className={`score-bar-fill score-bar-fill-premium ${riskClass}`}
                 style={{ width: `${result.riskScore}%` }}
               />
             </div>
@@ -218,19 +218,20 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
       </div>
 
       <div className="dashboard-grid">
-        <div className="panel panel-findings panel-compact">
+        <div className="panel panel-findings panel-compact panel-premium">
           <div className="panel-header-row">
             <h3>Erkenntnisse</h3>
-            <span className="panel-mini-tag">Live-Auswertung</span>
+            <span className="panel-mini-tag panel-mini-tag-gold">Live-Auswertung</span>
           </div>
 
           <div className="findings-block">
             {coreFindings.map((finding) => {
               const tone = getFindingTone(finding);
+
               return (
                 <div
                   key={finding.label}
-                  className={`item-row item-row-card item-row-tight item-row-accent ${tone}`}
+                  className={`item-row item-row-card item-row-tight item-row-accent item-row-premium ${tone}`}
                 >
                   <div className="item-row-top">
                     <span>{translateFindingLabel(finding.label)}</span>
@@ -248,7 +249,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                   <h4>Plattform-Signale</h4>
                   <button
                     type="button"
-                    className="info-trigger"
+                    className="info-trigger info-trigger-gold"
                     onClick={() => setShowPlatformInfo((prev) => !prev)}
                     aria-label="Plattform-Signale erklären"
                     aria-expanded={showPlatformInfo}
@@ -257,15 +258,15 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                   </button>
                 </div>
 
-                <span className="panel-mini-tag">Pro Plattform</span>
+                <span className="panel-mini-tag panel-mini-tag-gold">Pro Plattform</span>
               </div>
 
               {showPlatformInfo && (
-                <div className="info-bubble">
+                <div className="info-bubble info-bubble-gold">
                   Plattform-Signale zeigen, wie stark öffentlich auffindbare
                   Profile mit der gesuchten Identität zusammenhängen könnten.
-                  Dabei werden Name, Stadt, Benutzername und profiltypische URL-
-                  Muster berücksichtigt.
+                  Berücksichtigt werden Name, Stadt, Benutzername und typische
+                  Profil-URLs.
                 </div>
               )}
 
@@ -276,7 +277,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                   return (
                     <div
                       key={finding.label}
-                      className={`platform-card item-row-accent ${tone}`}
+                      className={`platform-card platform-card-premium item-row-accent ${tone}`}
                     >
                       <div className="platform-card-top">
                         <span className="platform-name">
@@ -294,7 +295,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                           rel="noreferrer"
                           className="platform-link"
                         >
-                          Gefundenen Treffer öffnen
+                          Öffentlichen Treffer öffnen
                         </a>
                       ) : (
                         <span className="platform-link platform-link-muted">
@@ -313,14 +314,14 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
           )}
         </div>
 
-        <div className="panel panel-summary panel-compact">
+        <div className="panel panel-summary panel-compact panel-premium">
           <div className="panel-header-row">
             <h3>KI-Risikoeinschätzung</h3>
-            <span className="panel-mini-tag">Interpretation</span>
+            <span className="panel-mini-tag panel-mini-tag-gold">Interpretation</span>
           </div>
 
           <div className="summary-v9">
-            <div className={`summary-badge ${riskClass}`}>
+            <div className={`summary-badge summary-badge-premium ${riskClass}`}>
               {riskMeta.summaryBadge}
             </div>
 
@@ -328,7 +329,7 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
               <h4 className="summary-headline">{summaryBlocks.headline}</h4>
             )}
 
-            <div className="summary-body-card">
+            <div className="summary-body-card summary-body-card-premium">
               {summaryBlocks.support.length > 0 ? (
                 summaryBlocks.support.map((paragraph, index) => (
                   <p key={index} className="summary-text summary-text-compact">
@@ -336,25 +337,23 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
                   </p>
                 ))
               ) : (
-                <p className="summary-text summary-text-compact">
-                  {result.aiSummary}
-                </p>
+                <p className="summary-text summary-text-compact">{result.aiSummary}</p>
               )}
             </div>
           </div>
         </div>
 
-        <div className="panel panel-recommendations panel-compact">
+        <div className="panel panel-recommendations panel-compact panel-premium">
           <div className="panel-header-row">
             <h3>Empfehlungen</h3>
-            <span className="panel-mini-tag">Nächste Schritte</span>
+            <span className="panel-mini-tag panel-mini-tag-gold">Nächste Schritte</span>
           </div>
 
           <div className="recommendation-grid recommendation-grid-compact">
             {result.recommendations.map((item, index) => (
               <article
                 key={item.title}
-                className="recommendation-card recommendation-card-compact"
+                className="recommendation-card recommendation-card-compact recommendation-card-premium"
               >
                 <div className="recommendation-index">
                   {String(index + 1).padStart(2, "0")}

@@ -1308,3 +1308,167 @@ input {
     width: 100%;
   }
 }
+
+/* =========================
+   RESULTCARD GOLD POLISH
+========================= */
+
+.secondary-button-gold {
+  border-color: rgba(212, 175, 55, 0.22);
+  background: rgba(212, 175, 55, 0.08);
+  color: #f2df9b;
+}
+
+.secondary-button-gold:hover {
+  background: rgba(212, 175, 55, 0.14);
+}
+
+.panel-premium {
+  background:
+    radial-gradient(circle at top left, rgba(212, 175, 55, 0.05), transparent 32%),
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.022));
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.score-panel-premium {
+  background:
+    radial-gradient(circle at top left, rgba(212, 175, 55, 0.07), transparent 32%),
+    linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.025));
+}
+
+.score-circle-premium.risk-low {
+  --ring-color: #d4af37;
+  --ring-glow: rgba(212, 175, 55, 0.16);
+}
+
+.score-circle-premium.risk-medium {
+  --ring-color: #f0d98a;
+  --ring-glow: rgba(240, 217, 138, 0.18);
+}
+
+.score-circle-premium.risk-high {
+  --ring-color: #ff6b73;
+  --ring-glow: rgba(255, 107, 115, 0.18);
+}
+
+.risk-badge-premium.risk-low {
+  background: rgba(212, 175, 55, 0.12);
+  border-color: rgba(212, 175, 55, 0.24);
+  color: #f0d98a;
+}
+
+.risk-badge-premium.risk-medium {
+  background: rgba(240, 217, 138, 0.12);
+  border-color: rgba(240, 217, 138, 0.24);
+  color: #f6e6b0;
+}
+
+.signal-chip-premium.risk-low {
+  background: rgba(212, 175, 55, 0.11);
+  border-color: rgba(212, 175, 55, 0.24);
+  color: #f0d98a;
+}
+
+.signal-chip-premium.risk-medium {
+  background: rgba(240, 217, 138, 0.12);
+  border-color: rgba(240, 217, 138, 0.24);
+  color: #f6e6b0;
+}
+
+.signal-chip-soft {
+  background: rgba(255,255,255,0.035);
+}
+
+.score-bar-track-premium {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.08);
+}
+
+.score-bar-fill-premium.risk-low {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.72), #d4af37);
+}
+
+.score-bar-fill-premium.risk-medium {
+  background: linear-gradient(90deg, rgba(240, 217, 138, 0.72), #f0d98a);
+}
+
+.panel-mini-tag-gold {
+  border-color: rgba(212, 175, 55, 0.18);
+  background: rgba(212, 175, 55, 0.06);
+  color: rgba(240, 217, 138, 0.9);
+}
+
+.item-row-premium {
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.04), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+}
+
+.info-trigger-gold {
+  border-color: rgba(212, 175, 55, 0.2);
+  background: rgba(212, 175, 55, 0.06);
+  color: #f0d98a;
+}
+
+.info-trigger-gold:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.info-bubble-gold {
+  border-color: rgba(212, 175, 55, 0.14);
+  background:
+    radial-gradient(circle at top left, rgba(212, 175, 55, 0.05), transparent 34%),
+    rgba(255,255,255,0.03);
+}
+
+.platform-card-premium {
+  background:
+    radial-gradient(circle at top right, rgba(212, 175, 55, 0.05), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+}
+
+.platform-badge-danger {
+  background: rgba(255, 107, 115, 0.14);
+  border-color: rgba(255, 107, 115, 0.3);
+  color: #ff6b73;
+}
+
+.platform-badge-warning {
+  background: rgba(212, 175, 55, 0.12);
+  border-color: rgba(212, 175, 55, 0.24);
+  color: #f0d98a;
+}
+
+.platform-badge-neutral {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.75);
+}
+
+.platform-link {
+  color: #e8d08a;
+}
+
+.summary-badge-premium.risk-low {
+  background: rgba(212, 175, 55, 0.12);
+  border-color: rgba(212, 175, 55, 0.22);
+  color: #f0d98a;
+}
+
+.summary-badge-premium.risk-medium {
+  background: rgba(240, 217, 138, 0.12);
+  border-color: rgba(240, 217, 138, 0.22);
+  color: #f6e6b0;
+}
+
+.summary-body-card-premium {
+  background:
+    radial-gradient(circle at top left, rgba(212, 175, 55, 0.05), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+}
+
+.recommendation-card-premium {
+  background:
+    radial-gradient(circle at bottom right, rgba(212, 175, 55, 0.06), transparent 44%),
+    linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+}
