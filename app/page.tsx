@@ -72,14 +72,14 @@ export default function HomePage() {
               </div>
 
               <h1>
-                Finde heraus, wie leicht deine Identität online
-                <span> gefunden und verknüpft werden kann.</span>
+                Verstehe, wie leicht deine Identität online
+                <span> erkannt und verknüpft werden kann.</span>
               </h1>
 
               <p className="landing-lead">
                 Schon wenige öffentliche Angaben können reichen, damit Profile,
-                Suchtreffer und persönliche Informationen miteinander verbunden
-                werden. ID Radar zeigt dir, wie sichtbar und verknüpfbar deine
+                Suchtreffer und persönliche Informationen zusammengeführt werden.
+                ID Radar zeigt dir, wie sichtbar und wie verknüpfbar deine
                 Identität im Internet aktuell ist.
               </p>
 
@@ -106,7 +106,7 @@ export default function HomePage() {
                   <span className="landing-preview-label">
                     Beispielhafte Auswertung
                   </span>
-                  <span className="landing-preview-status">Live Analyse</span>
+                  <span className="landing-preview-status">Premium Analysegefühl</span>
                 </div>
 
                 <div className="landing-preview-score">
@@ -121,7 +121,7 @@ export default function HomePage() {
                     <h3>Niedriges bis mittleres Risiko</h3>
                     <p>
                       Öffentliche Hinweise sind sichtbar, aber derzeit nur
-                      teilweise plattformübergreifend miteinander verknüpfbar.
+                      begrenzt plattformübergreifend verknüpfbar.
                     </p>
                   </div>
                 </div>
@@ -150,7 +150,7 @@ export default function HomePage() {
             <span className="landing-section-kicker">So funktioniert es</span>
             <h2>Ein schneller Scan mit verständlicher Risikoeinschätzung</h2>
             <p>
-              ID Radar prüft nicht nur, ob du online sichtbar bist – sondern vor
+              ID Radar prüft nicht nur, ob du online sichtbar bist, sondern vor
               allem, wie leicht einzelne Informationen über dich zusammengeführt
               werden können.
             </p>
@@ -170,8 +170,8 @@ export default function HomePage() {
               <div className="landing-card-index">02</div>
               <h3>Verknüpfbarkeit bewerten</h3>
               <p>
-                Entscheidend ist, ob dieselbe Identität über mehrere Quellen und
-                Plattformen hinweg leichter erkannt werden kann.
+                Entscheidend ist, wie leicht dieselbe Identität über mehrere
+                Quellen und Plattformen hinweg erkannt werden kann.
               </p>
             </article>
 
@@ -179,7 +179,7 @@ export default function HomePage() {
               <div className="landing-card-index">03</div>
               <h3>Klare Empfehlungen erhalten</h3>
               <p>
-                Du bekommst eine verständliche Einschätzung und konkrete Hinweise,
+                Du erhältst eine verständliche Einschätzung und konkrete Hinweise,
                 wie du deine öffentliche Sichtbarkeit besser kontrollieren kannst.
               </p>
             </article>
@@ -196,8 +196,8 @@ export default function HomePage() {
               </h2>
               <p>
                 Name, Stadt, wiederverwendete Benutzernamen und öffentliche
-                Profile ergeben zusammen oft mehr, als man im ersten Moment denkt.
-                Genau daraus entsteht digitale Verknüpfbarkeit.
+                Profile ergeben zusammen oft mehr, als man auf den ersten Blick
+                erwartet. Genau daraus entsteht digitale Verknüpfbarkeit.
               </p>
 
               <ul className="landing-list">
@@ -239,8 +239,9 @@ export default function HomePage() {
             <span className="landing-section-kicker">Vertrauen</span>
             <h2>Zurückhaltend entwickelt, weil Identität ein sensibles Thema ist</h2>
             <p>
-              ID Radar soll verständlich, vertrauenswürdig und datensparsam wirken
-              – mit Fokus auf Klarheit statt unnötiger Komplexität.
+              ID Radar soll verständlich, vertrauenswürdig und datensparsam
+              wirken – mit Fokus auf Klarheit, Schutz und ein hochwertiges
+              Nutzungserlebnis.
             </p>
           </div>
 
@@ -248,8 +249,9 @@ export default function HomePage() {
             <article className="landing-card landing-card-compact landing-card-polished">
               <h3>Keine dauerhafte Speicherung</h3>
               <p>
-                Deine Scan-Eingaben werden nur für die laufende Anfrage verarbeitet
-                und nicht dauerhaft als persönliches Profil gespeichert.
+                Deine Scan-Eingaben werden nur für die laufende Anfrage
+                verarbeitet und nicht dauerhaft als persönliches Profil
+                gespeichert.
               </p>
             </article>
 
@@ -277,7 +279,8 @@ export default function HomePage() {
             <h2>Starte mit einer ersten Einschätzung deiner Online-Sichtbarkeit</h2>
             <p>
               In wenigen Sekunden erhältst du eine erste Einschätzung dazu, wie
-              leicht deine öffentliche Identität erkannt und verknüpft werden kann.
+              leicht deine öffentliche Identität erkannt und verknüpft werden
+              kann.
             </p>
 
             <div className="landing-final-actions">
