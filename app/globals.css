@@ -2439,13 +2439,13 @@ a.landing-tap:hover {
 }
 
 /* =========================
-   RESULTCARD EMERGENCY FIX
+   RESULTCARD POLISH FIX
 ========================= */
 
 .result-shell {
   width: 100%;
   max-width: 100%;
-  overflow: hidden;
+  overflow: clip;
 }
 
 .result-shell-vnext {
@@ -2462,14 +2462,15 @@ a.landing-tap:hover {
 
 .result-header h2 {
   margin: 0;
-  line-height: 1;
+  line-height: 0.98;
+  letter-spacing: -0.03em;
 }
 
 .score-panel {
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 20px;
+  padding: 22px;
   border-radius: 22px;
 }
 
@@ -2481,11 +2482,13 @@ a.landing-tap:hover {
 .score-copy,
 .summary-text,
 .platform-detail,
-.recommendation-card p,
+.recommendation-content h4,
+.recommendation-content p,
 .item-row strong,
 .item-row span {
-  word-break: break-word;
-  overflow-wrap: anywhere;
+  word-break: normal;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .score-headline {
@@ -2502,7 +2505,7 @@ a.landing-tap:hover {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1.15fr 0.95fr 0.95fr;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.96fr) minmax(0, 0.96fr);
   gap: 16px;
   align-items: start;
 }
@@ -2518,6 +2521,10 @@ a.landing-tap:hover {
   align-items: center;
   gap: 10px;
   margin-bottom: 12px;
+}
+
+.panel-header-row > * {
+  min-width: 0;
 }
 
 .findings-block {
@@ -2669,6 +2676,7 @@ a.landing-tap:hover {
 }
 
 .recommendation-index {
+  flex: 0 0 40px;
   min-width: 40px;
   font-size: 1.7rem;
   line-height: 1;
@@ -2676,7 +2684,9 @@ a.landing-tap:hover {
 }
 
 .recommendation-content {
+  flex: 1;
   min-width: 0;
+  width: 100%;
 }
 
 .recommendation-content h4 {
@@ -2688,11 +2698,10 @@ a.landing-tap:hover {
 .summary-badge,
 .risk-badge,
 .signal-chip {
-  white-space: nowrap;
+  max-width: 100%;
 }
 
-/* Desktop refinement */
-@media (min-width: 1181px) {
+@media (min-width: 1281px) {
   .panel-findings {
     grid-column: 1;
   }
@@ -2706,8 +2715,7 @@ a.landing-tap:hover {
   }
 }
 
-/* Tablet */
-@media (max-width: 1180px) {
+@media (max-width: 1280px) {
   .dashboard-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -2717,7 +2725,6 @@ a.landing-tap:hover {
   }
 }
 
-/* Mobile */
 @media (max-width: 900px) {
   .result-header {
     flex-direction: column;
@@ -2785,7 +2792,7 @@ a.landing-tap:hover {
   .platform-link,
   .platform-detail,
   .summary-text,
-  .recommendation-card p {
+  .recommendation-content p {
     font-size: 0.9rem;
   }
 
