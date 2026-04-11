@@ -27,6 +27,15 @@ const initialState: ScanRequestBody = {
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const BROWSER_SCAN_KEY = "idradar_last_scan_at";
 
+const LOADING_MESSAGES = [
+  "Analysiere öffentliche Daten...",
+  "Suche nach Plattform-Signalen...",
+  "Berechne Risiko...",
+  "Erstelle deine Auswertung...",
+];
+
+type FieldErrorKey = "firstName" | "lastName" | "city";
+
 function getRemainingMs(lastScanAt: number) {
   return Math.max(0, ONE_DAY_MS - (Date.now() - lastScanAt));
 }
@@ -51,6 +60,9 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   const [formData, setFormData] = useState<ScanRequestBody>(initialState);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldErrorKey, string>>>(
+    {}
+  );
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [confirmOwnership, setConfirmOwnership] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -60,6 +72,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   );
   const [formStartedAt] = useState<number>(Date.now());
   const [honeypot, setHoneypot] = useState("");
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -109,6 +122,19 @@ export default function ScanForm({ onResult }: ScanFormProps) {
     }
   }, []);
 
+  useEffect(() => {
+    if (!loading) {
+      setLoadingMessageIndex(0);
+      return;
+    }
+
+    const id = window.setInterval(() => {
+      setLoadingMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 2600);
+
+    return () => window.clearInterval(id);
+  }, [loading]);
+
   const browserLimitMessage = useMemo(() => {
     if (!browserBlockedUntil) return "";
 
@@ -125,6 +151,17 @@ export default function ScanForm({ onResult }: ScanFormProps) {
     browserBlockedUntil && browserBlockedUntil > Date.now()
   );
 
+  const inputsDisabled = loading || isBrowserBlocked;
+
+  function clearFieldError(key: FieldErrorKey) {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
   function updateField<K extends keyof ScanRequestBody>(
     key: K,
     value: ScanRequestBody[K]
@@ -133,11 +170,35 @@ export default function ScanForm({ onResult }: ScanFormProps) {
       ...prev,
       [key]: value,
     }));
+    if (key === "firstName" || key === "lastName" || key === "city") {
+      clearFieldError(key);
+    }
+  }
+
+  function validateFields(): boolean {
+    const next: Partial<Record<FieldErrorKey, string>> = {};
+    const fn = formData.firstName.trim();
+    const ln = formData.lastName.trim();
+    const city = (formData.city ?? "").trim();
+
+    if (!fn) {
+      next.firstName = "Bitte gib deinen Vornamen ein";
+    }
+    if (!ln) {
+      next.lastName = "Bitte gib deinen Nachnamen ein";
+    }
+    if (!city) {
+      next.city = "Bitte gib eine Stadt ein";
+    }
+
+    setFieldErrors(next);
+    return Object.keys(next).length === 0;
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setFieldErrors({});
 
     if (isBrowserBlocked) {
       setError(browserLimitMessage);
@@ -146,6 +207,10 @@ export default function ScanForm({ onResult }: ScanFormProps) {
 
     if (honeypot.trim()) {
       setError("Anfrage blockiert.");
+      return;
+    }
+
+    if (!validateFields()) {
       return;
     }
 
@@ -216,7 +281,11 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         />
       ) : null}
 
-      <form className="scan-form fade-in" onSubmit={handleSubmit}>
+      <form
+        className="scan-form scan-form-v2 fade-in"
+        onSubmit={handleSubmit}
+        aria-busy={loading}
+      >
         <div className="form-intro">
           <span className="eyebrow">ID Radar</span>
           <h1>Wie sichtbar ist deine Identität online?</h1>
@@ -250,114 +319,130 @@ export default function ScanForm({ onResult }: ScanFormProps) {
           />
         </div>
 
+        <fieldset className="scan-form-fieldset scan-form-fieldset--name">
+          <legend className="scan-form-legend">Vollständiger Name</legend>
+          <div className="form-grid form-grid--scan-name">
+            <div className="field">
+              <label htmlFor="firstName">Vorname</label>
+              <input
+                id="firstName"
+                type="text"
+                name="firstName"
+                autoComplete="given-name"
+                placeholder="z. B. Max"
+                value={formData.firstName}
+                onChange={(e) => updateField("firstName", e.target.value)}
+                disabled={inputsDisabled}
+                aria-invalid={Boolean(fieldErrors.firstName)}
+                aria-describedby={fieldErrors.firstName ? "err-firstName" : undefined}
+              />
+              {fieldErrors.firstName ? (
+                <p id="err-firstName" className="field-error" role="alert">
+                  {fieldErrors.firstName}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="field">
+              <label htmlFor="lastName">Nachname</label>
+              <input
+                id="lastName"
+                type="text"
+                name="lastName"
+                autoComplete="family-name"
+                placeholder="z. B. Mustermann"
+                value={formData.lastName}
+                onChange={(e) => updateField("lastName", e.target.value)}
+                disabled={inputsDisabled}
+                aria-invalid={Boolean(fieldErrors.lastName)}
+                aria-describedby={fieldErrors.lastName ? "err-lastName" : undefined}
+              />
+              {fieldErrors.lastName ? (
+                <p id="err-lastName" className="field-error" role="alert">
+                  {fieldErrors.lastName}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </fieldset>
+
         <div className="form-grid">
-          <div className="field">
-            <label htmlFor="firstName">Vorname</label>
-            <input
-              id="firstName"
-              type="text"
-              placeholder="Max"
-              value={formData.firstName}
-              onChange={(e) => updateField("firstName", e.target.value)}
-              required
-              disabled={isBrowserBlocked}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="lastName">Nachname</label>
-            <input
-              id="lastName"
-              type="text"
-              placeholder="Muster"
-              value={formData.lastName}
-              onChange={(e) => updateField("lastName", e.target.value)}
-              required
-              disabled={isBrowserBlocked}
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="city">
-              Stadt <span className="optional">(optional)</span>
-            </label>
+          <div className="field field-full">
+            <label htmlFor="city">Stadt</label>
             <input
               id="city"
               type="text"
-              placeholder="Zürich"
+              name="city"
+              autoComplete="address-level2"
+              placeholder="z. B. Zürich"
               value={formData.city}
               onChange={(e) => updateField("city", e.target.value)}
-              disabled={isBrowserBlocked}
+              disabled={inputsDisabled}
+              aria-invalid={Boolean(fieldErrors.city)}
+              aria-describedby={fieldErrors.city ? "err-city" : undefined}
             />
+            {fieldErrors.city ? (
+              <p id="err-city" className="field-error" role="alert">
+                {fieldErrors.city}
+              </p>
+            ) : null}
           </div>
 
-          <div className="field">
-            <label htmlFor="username">
-              Benutzername <span className="optional">(optional)</span>
-            </label>
+          <div className="field field-full field-optional-soft">
+            <div className="field-label-row">
+              <label htmlFor="username">Username</label>
+              <span className="field-optional-badge">Optional</span>
+            </div>
             <input
               id="username"
               type="text"
-              placeholder="max.muster"
+              name="username"
+              autoComplete="username"
+              placeholder="z. B. maxmustermann"
               value={formData.username}
               onChange={(e) => updateField("username", e.target.value)}
-              disabled={isBrowserBlocked}
+              disabled={inputsDisabled}
             />
+            <p className="field-hint">optional – erhöht Genauigkeit</p>
           </div>
 
-          <div className="field field-full">
-            <label htmlFor="email">
-              E-Mail <span className="optional">(optional)</span>
-            </label>
+          <div className="field field-full field-optional-soft">
+            <div className="field-label-row">
+              <label htmlFor="email">E-Mail</label>
+              <span className="field-optional-badge">Optional</span>
+            </div>
             <input
               id="email"
               type="email"
-              placeholder="max@example.com"
+              name="email"
+              autoComplete="email"
+              placeholder="z. B. mail@example.com"
               value={formData.email}
               onChange={(e) => updateField("email", e.target.value)}
-              disabled={isBrowserBlocked}
+              disabled={inputsDisabled}
             />
           </div>
         </div>
 
-        <div className="privacy-box">
+        <div className="scan-form-trust-micro" aria-live="polite">
+          <p>Wir speichern keine persönlichen Daten</p>
+          <p>Analyse basiert nur auf öffentlich sichtbaren Informationen</p>
+        </div>
+
+        <div className="privacy-box privacy-box--compact">
           <p>
-            Kein Login. Keine dauerhafte Speicherung. Deine Eingaben werden nur
-            während der Anfrage verarbeitet und als temporäres Ergebnis
-            zurückgegeben.
+            Deine Eingaben werden nur für diese Anfrage verarbeitet und nicht als
+            dauerhaftes Profil gespeichert.
           </p>
         </div>
 
-        <div
-          style={{
-            marginBottom: 18,
-            padding: "16px 18px",
-            border: "1px solid rgba(255,255,255,0.10)",
-            borderRadius: 16,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.025))",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
-          }}
-        >
-          <label
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 10,
-              marginBottom: 12,
-              color: "rgba(255,255,255,0.84)",
-              lineHeight: 1.55,
-              cursor: "pointer",
-              fontSize: 14,
-              opacity: isBrowserBlocked ? 0.6 : 1,
-            }}
-          >
+        <div className="scan-form-consent">
+          <label className="scan-form-consent-label">
             <input
               type="checkbox"
               checked={confirmOwnership}
               onChange={(e) => setConfirmOwnership(e.target.checked)}
-              style={{ marginTop: 3 }}
-              disabled={isBrowserBlocked}
+              disabled={inputsDisabled}
             />
             <span>
               Ich bestätige, dass ich meine eigenen Daten prüfe oder zur
@@ -365,50 +450,20 @@ export default function ScanForm({ onResult }: ScanFormProps) {
             </span>
           </label>
 
-          <label
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 10,
-              color: "rgba(255,255,255,0.84)",
-              lineHeight: 1.55,
-              cursor: "pointer",
-              fontSize: 14,
-              opacity: isBrowserBlocked ? 0.6 : 1,
-            }}
-          >
+          <label className="scan-form-consent-label">
             <input
               type="checkbox"
               checked={acceptTerms}
               onChange={(e) => setAcceptTerms(e.target.checked)}
-              style={{ marginTop: 3 }}
-              disabled={isBrowserBlocked}
+              disabled={inputsDisabled}
             />
             <span>
               Ich akzeptiere die{" "}
-              <a
-                href="/terms"
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  color: "#8fd3ff",
-                  textDecoration: "none",
-                  borderBottom: "1px solid rgba(143,211,255,0.25)",
-                }}
-              >
+              <a href="/terms" target="_blank" rel="noreferrer">
                 Nutzungsbedingungen
               </a>{" "}
               und die{" "}
-              <a
-                href="/privacy"
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  color: "#8fd3ff",
-                  textDecoration: "none",
-                  borderBottom: "1px solid rgba(143,211,255,0.25)",
-                }}
-              >
+              <a href="/privacy" target="_blank" rel="noreferrer">
                 Datenschutzerklärung
               </a>
               .
@@ -416,28 +471,8 @@ export default function ScanForm({ onResult }: ScanFormProps) {
           </label>
         </div>
 
-        <div
-          style={{
-            marginBottom: 18,
-            padding: "16px 18px",
-            border: "1px solid rgba(255,255,255,0.10)",
-            borderRadius: 16,
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.025))",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
-            opacity: isBrowserBlocked ? 0.6 : 1,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 14,
-              color: "rgba(255,255,255,0.84)",
-              marginBottom: 12,
-              lineHeight: 1.5,
-            }}
-          >
-            Sicherheitsprüfung
-          </div>
+        <div className={`scan-form-turnstile ${isBrowserBlocked ? "is-muted" : ""}`}>
+          <div className="scan-form-turnstile-title">Sicherheitsprüfung</div>
 
           {siteKey ? (
             <div
@@ -449,48 +484,48 @@ export default function ScanForm({ onResult }: ScanFormProps) {
               data-error-callback="onTurnstileError"
             />
           ) : (
-            <div
-              style={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
+            <div className="scan-form-turnstile-fallback">
               Turnstile ist noch nicht konfiguriert.
             </div>
           )}
 
           <div
-            style={{
-              marginTop: 10,
-              fontSize: 13,
-              color: turnstileToken
-                ? "rgba(67,227,139,0.95)"
-                : "rgba(255,255,255,0.5)",
-            }}
+            className={`scan-form-turnstile-status ${
+              turnstileToken ? "is-ok" : ""
+            }`}
           >
             {turnstileToken
               ? "Sicherheitsprüfung erfolgreich."
               : turnstileReady
-              ? "Bitte bestätige die Sicherheitsprüfung."
-              : "Sicherheitsprüfung wird geladen..."}
+                ? "Bitte bestätige die Sicherheitsprüfung."
+                : "Sicherheitsprüfung wird geladen..."}
           </div>
         </div>
 
         {browserLimitMessage ? <div className="error-box">{browserLimitMessage}</div> : null}
         {error ? <div className="error-box">{error}</div> : null}
 
-        <button
-          type="submit"
-          className="primary-button"
-          disabled={loading || isBrowserBlocked}
-        >
-          {loading
-            ? "Analyse läuft..."
-            : isBrowserBlocked
-            ? "Heute bereits genutzt"
-            : "Identität prüfen"}
-        </button>
+        <div className="scan-form-submit-block">
+          {loading ? (
+            <div className="scan-form-loading" role="status" aria-live="polite">
+              <div className="scan-form-spinner" aria-hidden="true" />
+              <p className="scan-form-loading-text">
+                {LOADING_MESSAGES[loadingMessageIndex]}
+              </p>
+            </div>
+          ) : (
+            <>
+              <button
+                type="submit"
+                className="primary-button scan-form-cta"
+                disabled={isBrowserBlocked}
+              >
+                Identität prüfen
+              </button>
+              <p className="scan-form-cta-sub">Kostenlos · 1 Scan pro Tag</p>
+            </>
+          )}
+        </div>
       </form>
     </>
   );

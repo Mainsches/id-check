@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ScanForm from "@/components/ScanForm";
 import ResultCard from "@/components/ResultCard";
+import HeroRadarVisual from "@/components/HeroRadarVisual";
 import { ScanResponse } from "@/types/scan";
 
 function IconGlobe() {
@@ -131,54 +132,22 @@ export default function HomePage() {
           <div className="landing-hero-glow landing-hero-glow-one" />
           <div className="landing-hero-glow landing-hero-glow-two" />
 
-          <div className="landing-navbar landing-reveal">
-            <div className="landing-brand">
-              <span className="landing-brand-dot" />
-              <span>ID Radar</span>
-            </div>
-
-            <div className="landing-navbar-links">
-              <a href="#vertrauen">Vertrauen</a>
-              <a href="#wie-es-funktioniert">So funktioniert&apos;s</a>
-              <a href="#warum">Warum wichtig</a>
-            </div>
-
-            <button
-              type="button"
-              className="landing-nav-button landing-tap"
-              onClick={openScan}
-            >
-              Jetzt Identität prüfen
-            </button>
-          </div>
-
           <div className="landing-hero-inner">
             <div className="landing-hero-copy landing-reveal landing-reveal-delay-1">
-              <div className="landing-badge-row">
-                <span className="landing-badge">Identitätsrisiko</span>
-                <span className="landing-badge landing-badge-soft">
-                  Öffentliche Daten
-                </span>
-                <span className="landing-badge landing-badge-soft">
-                  Schweizer Datenschutz
-                </span>
-              </div>
-
-              <h1>
-                Wie exponiert ist deine Identität
-                <span> im Netz wirklich?</span>
+              <h1 className="landing-hero-title">
+                Prüfe, wie sichtbar deine{" "}
+                <span className="landing-hero-em">Identität</span> online ist.
               </h1>
 
-              <p className="landing-lead">
-                In Sekunden: Wir werten öffentlich sichtbare Hinweise aus und
-                schätzen, wie leicht sich deine Identität online erkennen und
-                verknüpfen lässt – klar erklärt, ohne Registrierung.
+              <p className="landing-lead landing-lead--hero">
+                ID Radar analysiert öffentlich sichtbare Online-Signale und zeigt
+                in Sekunden, wie exponiert deine Identität wirkt.
               </p>
 
-              <div className="landing-actions">
+              <div className="landing-actions landing-actions--hero">
                 <button
                   type="button"
-                  className="primary-button landing-cta landing-tap"
+                  className="primary-button landing-cta landing-cta--hero landing-tap"
                   onClick={openScan}
                 >
                   Jetzt Identität prüfen
@@ -186,64 +155,23 @@ export default function HomePage() {
 
                 <a
                   href="#wie-es-funktioniert"
-                  className="landing-secondary-link landing-tap"
+                  className="landing-secondary-link landing-secondary-link--hero landing-tap"
                 >
-                  So funktioniert&apos;s
+                  Ablauf ansehen
                 </a>
               </div>
 
-              <p className="landing-hero-trust-line">
-                Keine Speicherung deiner Daten
+              <p className="landing-hero-trust-micro">
+                <span>Keine dauerhafte Speicherung</span>
+                <span className="landing-hero-trust-sep" aria-hidden="true">
+                  ·
+                </span>
+                <span>Nur öffentlich sichtbare Informationen</span>
               </p>
-
-              <div className="landing-hero-footnotes">
-                <span>1 kostenloser Scan pro Tag</span>
-                <span>Nur öffentliche Quellen</span>
-                <span>Kein Konto nötig</span>
-              </div>
             </div>
 
-            <div className="landing-hero-preview landing-reveal landing-reveal-delay-2">
-              <div className="landing-preview-card landing-float">
-                <div className="landing-preview-top">
-                  <span className="landing-preview-label">
-                    Beispielhafte Auswertung
-                  </span>
-                  <span className="landing-preview-status">Premium Analysegefühl</span>
-                </div>
-
-                <div className="landing-preview-score">
-                  <div className="landing-preview-score-ring">
-                    <div className="landing-preview-score-inner">
-                      <strong>24</strong>
-                      <span>/100</span>
-                    </div>
-                  </div>
-
-                  <div className="landing-preview-score-copy">
-                    <h3>Niedriges bis mittleres Risiko</h3>
-                    <p>
-                      Öffentliche Hinweise sind sichtbar, aber derzeit nur
-                      begrenzt plattformübergreifend verknüpfbar.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="landing-preview-list">
-                  <div className="landing-preview-item">
-                    <span>Öffentliche Sichtbarkeit</span>
-                    <strong>Vorhanden</strong>
-                  </div>
-                  <div className="landing-preview-item">
-                    <span>Plattform-Signale</span>
-                    <strong>Teilweise</strong>
-                  </div>
-                  <div className="landing-preview-item">
-                    <span>Verzeichnis-Treffer</span>
-                    <strong>Keine</strong>
-                  </div>
-                </div>
-              </div>
+            <div className="landing-hero-visual landing-reveal landing-reveal-delay-2">
+              <HeroRadarVisual />
             </div>
           </div>
         </section>
