@@ -331,7 +331,7 @@ async function redisGet(key: string) {
 }
 
 export type DailyScanLimitResult =
-  | { allowed: true; storage: "redis" | "memory" }
+  | { allowed: true; storage: "redis" | "memory" | "bypass" }
   | {
       allowed: false;
       storage: "redis" | "memory";
@@ -339,7 +339,26 @@ export type DailyScanLimitResult =
       remainingMs: number;
     };
 
+/**
+ * Server-side only. When true, `reserveDailyScan` always allows without counting
+ * against the daily quota (Turnstile and the rest of the scan route stay active).
+ *
+ * - `NODE_ENV === "development"`: local `next dev`
+ * - `ID_RADAR_ALLOW_TEST_SCANS === "true"`: explicit opt-in (e.g. preview/staging
+ *   where `NODE_ENV` is still `production`). Never set on public production unless intended.
+ */
+export function isDailyScanLimitBypassEnabled(): boolean {
+  if (process.env.NODE_ENV === "development") {
+    return true;
+  }
+  return process.env.ID_RADAR_ALLOW_TEST_SCANS === "true";
+}
+
 export async function reserveDailyScan(ip: string): Promise<DailyScanLimitResult> {
+  if (isDailyScanLimitBypassEnabled()) {
+    return { allowed: true, storage: "bypass" };
+  }
+
   const safeIp = ip.trim() || "unknown";
   const key = buildKey(safeIp);
   const now = new Date();
