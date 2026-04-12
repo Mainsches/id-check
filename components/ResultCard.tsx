@@ -10,6 +10,16 @@ import { ScanResponse, FindingItem } from "@/types/scan";
 import { getResultViewKey } from "@/lib/result-view-key";
 import type { ErkenntnisIconId } from "@/lib/erkenntnisse-insights";
 import { getErkenntnisInsight } from "@/lib/erkenntnisse-insights";
+import { getKiGuidedSections } from "@/lib/ki-guided-sections";
+import type { ResultEmailHandler, ResultPdfExportHandler } from "@/lib/result-retention";
+import {
+  getAllPlatformFindings,
+  getHiddenPlatformRowCount,
+  getMeaningfulPlatformFindings,
+  isPlatformFindingLabel,
+} from "@/lib/platform-findings";
+import AccountProtectionModule from "@/components/AccountProtectionModule";
+import ProfilePlatformsHelp from "@/components/ProfilePlatformsHelp";
 import LockedFadeContent from "@/components/LockedFadeContent";
 import LockedSensitiveBlock from "@/components/LockedSensitiveBlock";
 import UnlockFullAnalysisCta from "@/components/UnlockFullAnalysisCta";
@@ -35,6 +45,10 @@ type ResultCardProps = {
   onReset: () => void;
   /** Full detail (post-unlock). When false, sensitive sections show as teaser. */
   detailUnlocked: boolean;
+  /** Optional: wire when PDF export is implemented (e.g. download blob). */
+  onDownloadPdf?: ResultPdfExportHandler;
+  /** Optional: wire when e-mail delivery is implemented. */
+  onEmailResult?: ResultEmailHandler;
 };
 
 function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
@@ -112,18 +126,6 @@ function translateFindingLabel(label: string) {
   return map[label] || label;
 }
 
-function isPlatformFinding(label: string) {
-  return [
-    "LinkedIn",
-    "Instagram",
-    "Facebook",
-    "TikTok",
-    "X / Twitter",
-    "GitHub",
-    "Reddit",
-  ].includes(label);
-}
-
 function platformBadgeText(finding: FindingItem) {
   if (finding.status === "danger") return "Eindeutig möglich";
   if (finding.status === "warning") return "Vermutlich relevant";
@@ -154,9 +156,18 @@ function renderSummaryBlocks(aiSummary: string) {
   return { headline, support };
 }
 
-export default function ResultCard({ result, onReset, detailUnlocked }: ResultCardProps) {
+export default function ResultCard({
+  result,
+  onReset,
+  detailUnlocked,
+  onDownloadPdf,
+  onEmailResult,
+}: ResultCardProps) {
   const router = useRouter();
-  const [showPlatformInfo, setShowPlatformInfo] = useState(false);
+  const [retentionFeedback, setRetentionFeedback] = useState<
+    null | { phase: "preparing" | "followup"; channel: "pdf" | "email" }
+  >(null);
+  const retentionTimersRef = useRef<number[]>([]);
   const [isPremiumUnlocked, setIsPremiumUnlocked] = useState(detailUnlocked);
   const [unlockReveal, setUnlockReveal] = useState(false);
   const prevDetailUnlocked = useRef<boolean | null>(null);
@@ -167,6 +178,13 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
   useEffect(() => {
     setIsPremiumUnlocked(detailUnlocked);
   }, [detailUnlocked, resultViewKey]);
+
+  useEffect(() => {
+    return () => {
+      retentionTimersRef.current.forEach((id) => window.clearTimeout(id));
+      retentionTimersRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (lastResultKey.current !== resultViewKey) {
@@ -206,27 +224,103 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
   } as CSSProperties;
 
   const topChips = result.findings.slice(0, 5);
-  const coreFindings = result.findings.filter((item) => !isPlatformFinding(item.label));
-  const platformFindings = result.findings.filter((item) => isPlatformFinding(item.label));
+  const coreFindings = result.findings.filter((item) => !isPlatformFindingLabel(item.label));
+  const platformFindingsAll = useMemo(() => getAllPlatformFindings(result), [result]);
+  const platformFindingsVisible = useMemo(
+    () => getMeaningfulPlatformFindings(result),
+    [result]
+  );
+  const hiddenPlatformRows = useMemo(() => getHiddenPlatformRowCount(result), [result]);
 
   const summaryBlocks = useMemo(
     () => renderSummaryBlocks(result.aiSummary),
     [result.aiSummary]
   );
 
+  const kiGuided = useMemo(() => getKiGuidedSections(result), [result]);
+
   const teaserMode = !isPremiumUnlocked;
+
+  const scheduleRetentionStub = (channel: "pdf" | "email") => {
+    retentionTimersRef.current.forEach((id) => window.clearTimeout(id));
+    retentionTimersRef.current = [];
+    setRetentionFeedback({ phase: "preparing", channel });
+    retentionTimersRef.current.push(
+      window.setTimeout(() => setRetentionFeedback({ phase: "followup", channel }), 720)
+    );
+    retentionTimersRef.current.push(
+      window.setTimeout(() => setRetentionFeedback(null), 720 + 4000)
+    );
+  };
+
+  const retentionStatusText =
+    retentionFeedback == null
+      ? null
+      : retentionFeedback.channel === "pdf"
+        ? retentionFeedback.phase === "preparing"
+          ? "PDF wird vorbereitet…"
+          : "Bericht-Export folgt in Kürze — Funktion noch in Arbeit."
+        : retentionFeedback.phase === "preparing"
+          ? "E-Mail-Versand wird vorbereitet…"
+          : "Versand folgt in Kürze — Funktion noch in Arbeit.";
+
+  const pdfRetentionBusy =
+    retentionFeedback?.channel === "pdf" && retentionFeedback.phase === "preparing";
+  const emailRetentionBusy =
+    retentionFeedback?.channel === "email" && retentionFeedback.phase === "preparing";
+
+  const handlePdfClick = () => {
+    if (onDownloadPdf) {
+      void Promise.resolve(onDownloadPdf(result));
+      return;
+    }
+    scheduleRetentionStub("pdf");
+  };
+
+  const handleEmailClick = () => {
+    if (onEmailResult) {
+      void Promise.resolve(onEmailResult(result));
+      return;
+    }
+    scheduleRetentionStub("email");
+  };
 
   return (
     <section className={`result-shell result-shell-vnext fade-in ${riskClass}`}>
       <div className="result-header result-header-vnext">
-        <div>
-          <span className="eyebrow">Auswertung</span>
+        <div className="result-header-main">
+          <span className="eyebrow">Identitäts-Scan</span>
           <h2>Dein digitales Identitätsprofil</h2>
         </div>
 
-        <button className="secondary-button secondary-button-gold" onClick={onReset}>
-          Neuer Scan
-        </button>
+        <div className="result-header-aside">
+          <div className="result-retention-row" aria-label="Bericht behalten">
+            <button
+              type="button"
+              className={`result-retention-btn${pdfRetentionBusy ? " result-retention-btn--busy" : ""}`}
+              onClick={handlePdfClick}
+              aria-busy={pdfRetentionBusy}
+            >
+              Als PDF herunterladen
+            </button>
+            <button
+              type="button"
+              className={`result-retention-btn${emailRetentionBusy ? " result-retention-btn--busy" : ""}`}
+              onClick={handleEmailClick}
+              aria-busy={emailRetentionBusy}
+            >
+              Per E-Mail senden
+            </button>
+          </div>
+          {retentionStatusText ? (
+            <p className="result-retention-hint" role="status" aria-live="polite">
+              {retentionStatusText}
+            </p>
+          ) : null}
+          <button type="button" className="secondary-button secondary-button-gold" onClick={onReset}>
+            Neuer Scan
+          </button>
+        </div>
       </div>
 
       <div className={`score-panel score-panel-vnext score-panel-premium ${riskClass}`}>
@@ -279,7 +373,8 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                 {result.riskScore}% Gesamtbewertung
               </span>
               <span className="score-bar-label score-bar-label-soft">
-                Einordnung aus Sichtbarkeit, verknüpfbaren Profilen und typischen Missbrauchspfaden
+                Modell-Einordnung aus Sichtbarkeit, verknüpfbaren Profilen und typischen
+                Missbrauchspfaden
               </span>
             </div>
           </div>
@@ -292,16 +387,20 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
         >
           <div className="dashboard-grid">
             <section
-              className="panel panel-findings panel-compact panel-premium idradar-export-section idradar-erkenntnisse"
-              id="export-erkenntnisse"
-              aria-labelledby="erkenntnisse-heading"
+              className="panel panel-findings panel-compact panel-premium idradar-export-section idradar-ki-scan"
+              id="export-ki-scan"
+              aria-labelledby="ki-scan-heading"
             >
               <div className="panel-header-row">
-                <h3 id="erkenntnisse-heading">Erkenntnisse</h3>
-                <span className="panel-mini-tag panel-mini-tag-gold">Verständlich erklärt</span>
+                <h3 id="ki-scan-heading">KI-SCAN</h3>
+                <span className="panel-mini-tag panel-mini-tag-gold">Aus öffentlichen Signalen</span>
               </div>
+              <p className="panel-deck">
+                Wiederkehrende Muster aus sichtbaren Hinweisen — zusammengeführt und in Klartext
+                übersetzt, nicht nur als Rohliste.
+              </p>
 
-              <div className="findings-block idradar-erkenntnisse-list" role="list">
+              <div className="findings-block idradar-ki-scan-list" role="list">
                 {coreFindings.map((finding, index) => {
                   const tone = getFindingTone(finding);
                   const maskDeep = teaserMode && index > 0;
@@ -321,7 +420,7 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                         <h4 className="insight-card-title">{insight.title}</h4>
                         <p className="insight-card-explanation">{insight.explanation}</p>
                         <div className="insight-card-meaning">
-                          <span className="insight-card-meaning-kicker">Das bedeutet für dich</span>
+                          <span className="insight-card-meaning-kicker">Praktisch eingeordnet</span>
                           <p className="insight-card-meaning-text">{insight.meaning}</p>
                         </div>
                       </div>
@@ -330,148 +429,180 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                 })}
               </div>
 
-              {platformFindings.length > 0 && (
-                <div className="platform-section">
+              {platformFindingsAll.length > 0 && (
+                <div className="platform-section" id="export-plattformen">
                   <div className="platform-section-head">
                     <div className="platform-heading-wrap">
-                      <h4>Profile & Plattformen</h4>
-                      <button
-                        type="button"
-                        className="info-trigger info-trigger-gold"
-                        onClick={() => setShowPlatformInfo((prev) => !prev)}
-                        aria-label="Hilfe zu Profilen und Plattformen"
-                        aria-expanded={showPlatformInfo}
-                      >
-                        ?
-                      </button>
+                      <h4>Stärkste öffentliche Profil-Hinweise</h4>
+                      <ProfilePlatformsHelp />
                     </div>
 
-                    <span className="panel-mini-tag panel-mini-tag-gold">Pro Plattform</span>
+                    <span className="panel-mini-tag panel-mini-tag-gold">Belastbar kuratiert</span>
                   </div>
 
-                  {showPlatformInfo && (
-                    <div className="info-bubble info-bubble-gold">
-                      Hier siehst du, wie gut öffentliche Profile zu deinem Namen, möglichen
-                      Benutzernamen und typischen Profil-URLs passen könnten — nicht jeder Treffer
-                      ist automatisch „du“, aber starke Übereinstimmungen sind ein wichtiger Hebel.
+                  <p className="platform-section-lead">
+                    Nur dort, wo öffentliche Treffer klar oder plausibel zu dir passen — schwache oder
+                    zufällige Treffer bleiben bewusst verborgen, damit du dich auf interpretierbare
+                    Hinweise konzentrierst.
+                  </p>
+
+                  {platformFindingsVisible.length > 0 ? (
+                    <div className="platform-grid">
+                      {platformFindingsVisible.map((finding) => {
+                        const tone = getFindingTone(finding);
+
+                        return (
+                          <div
+                            key={finding.label}
+                            className={`platform-card platform-card-premium item-row-accent ${tone} ${
+                              teaserMode ? "platform-card--teaser" : ""
+                            }`}
+                          >
+                            <div className="platform-card-top">
+                              <span className="platform-name">
+                                {translateFindingLabel(finding.label)}
+                              </span>
+                              <span className={`platform-badge ${badgeTone(finding)}`}>
+                                {platformBadgeTeaser(finding, teaserMode)}
+                              </span>
+                            </div>
+
+                            <LockedSensitiveBlock
+                              locked={teaserMode}
+                              onUnlock={goPremium}
+                              overlayLabel="Details anzeigen"
+                            >
+                              {finding.url ? (
+                                <a
+                                  href={finding.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="platform-link"
+                                >
+                                  Profil ansehen
+                                </a>
+                              ) : (
+                                <span className="platform-link platform-link-muted">
+                                  Kein öffentlicher Link verfügbar
+                                </span>
+                              )}
+
+                              {finding.detail ? (
+                                <p className="platform-detail">{finding.detail}</p>
+                              ) : null}
+                            </LockedSensitiveBlock>
+                          </div>
+                        );
+                      })}
                     </div>
+                  ) : (
+                    <p className="platform-section-empty">
+                      Unter den gängigen Plattformen ergab sich kein belastbarer öffentlicher Treffer,
+                      der hier angezeigt werden sollte.
+                    </p>
                   )}
 
-                  <div className="platform-grid">
-                    {platformFindings.map((finding) => {
-                      const tone = getFindingTone(finding);
-
-                      return (
-                        <div
-                          key={finding.label}
-                          className={`platform-card platform-card-premium item-row-accent ${tone} ${
-                            teaserMode ? "platform-card--teaser" : ""
-                          }`}
-                        >
-                          <div className="platform-card-top">
-                            <span className="platform-name">
-                              {translateFindingLabel(finding.label)}
-                            </span>
-                            <span className={`platform-badge ${badgeTone(finding)}`}>
-                              {platformBadgeTeaser(finding, teaserMode)}
-                            </span>
-                          </div>
-
-                          <LockedSensitiveBlock
-                            locked={teaserMode}
-                            onUnlock={goPremium}
-                            overlayLabel="Details anzeigen"
-                          >
-                            {finding.url ? (
-                              <a
-                                href={finding.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="platform-link"
-                              >
-                                Profil ansehen
-                              </a>
-                            ) : (
-                              <span className="platform-link platform-link-muted">
-                                Kein öffentlicher Link verfügbar
-                              </span>
-                            )}
-
-                            {finding.detail ? (
-                              <p className="platform-detail">{finding.detail}</p>
-                            ) : null}
-                          </LockedSensitiveBlock>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {hiddenPlatformRows > 0 ? (
+                    <p className="platform-section-footnote" role="note">
+                      Weitere gängige Plattformen wurden geprüft — ohne klaren Treffer erscheinen sie
+                      absichtlich nicht in dieser Liste.
+                    </p>
+                  ) : null}
                 </div>
               )}
             </section>
 
-            <div className="panel panel-summary panel-compact panel-premium">
+            <section
+              className="panel panel-summary panel-compact panel-premium idradar-export-section"
+              id="export-ki-einordnung"
+              aria-labelledby="ki-einordnung-heading"
+            >
               <div className="panel-header-row">
-                <h3>KI-Einordnung</h3>
-                <span className="panel-mini-tag panel-mini-tag-gold">Interpretation</span>
+                <h3 id="ki-einordnung-heading">KI-Einordnung</h3>
+                <span className="panel-mini-tag panel-mini-tag-gold">Strukturierte Deutung</span>
               </div>
+              <p className="panel-deck">
+                Zusammenfassung in verständlicher Prosa — geführt und eingeordnet, keine bloße
+                Stichpunktliste.
+              </p>
 
               <div className="summary-v9">
                 <div className={`summary-badge summary-badge-premium ${riskClass}`}>
                   {riskMeta.summaryBadge}
                 </div>
 
-                {summaryBlocks.headline && (
-                  <h4 className="summary-headline">{summaryBlocks.headline}</h4>
-                )}
+                {summaryBlocks.headline ? (
+                  <p className="summary-lead">{summaryBlocks.headline}</p>
+                ) : null}
 
-                <div className="summary-body-card summary-body-card-premium">
-                  {summaryBlocks.support.length > 0 ? (
-                    <>
-                      <p className="summary-text summary-text-compact">{summaryBlocks.support[0]}</p>
-                      {summaryBlocks.support.length > 1 ? (
-                        <LockedFadeContent locked={teaserMode} maxLines={7}>
-                          {summaryBlocks.support.slice(1).map((paragraph, index) => (
-                            <p key={index + 1} className="summary-text summary-text-compact">
-                              {paragraph}
-                            </p>
+                <div className="summary-body-card summary-body-card-premium ki-guided-card">
+                  <LockedFadeContent locked={teaserMode} maxLines={14}>
+                    <div className="ki-guided">
+                      <section className="ki-guided-block" aria-labelledby="ki-guided-was">
+                        <h4 id="ki-guided-was" className="ki-guided-heading">
+                          Was auffällt
+                        </h4>
+                        <ul className="ki-guided-list">
+                          {kiGuided.wasAuffaellt.map((line, i) => (
+                            <li key={`was-${i}`}>{line}</li>
                           ))}
-                        </LockedFadeContent>
-                      ) : null}
-                    </>
-                  ) : (
-                    <LockedFadeContent locked={teaserMode} maxLines={6}>
-                      <p className="summary-text summary-text-compact">{result.aiSummary}</p>
-                    </LockedFadeContent>
-                  )}
+                        </ul>
+                      </section>
+                      <section className="ki-guided-block" aria-labelledby="ki-guided-warum">
+                        <h4 id="ki-guided-warum" className="ki-guided-heading">
+                          Warum das relevant ist
+                        </h4>
+                        <ul className="ki-guided-list">
+                          {kiGuided.warumRelevant.map((line, i) => (
+                            <li key={`warum-${i}`}>{line}</li>
+                          ))}
+                        </ul>
+                      </section>
+                      <section className="ki-guided-block" aria-labelledby="ki-guided-tun">
+                        <h4 id="ki-guided-tun" className="ki-guided-heading">
+                          Was du tun kannst
+                        </h4>
+                        <ul className="ki-guided-list">
+                          {kiGuided.wasDuTunKannst.map((line, i) => (
+                            <li key={`tun-${i}`}>{line}</li>
+                          ))}
+                        </ul>
+                      </section>
+                    </div>
+                  </LockedFadeContent>
                 </div>
               </div>
-            </div>
+            </section>
 
             <div className="panel panel-recommendations panel-compact panel-premium">
               <div className="panel-header-row">
                 <h3>Empfehlungen</h3>
-                <span className="panel-mini-tag panel-mini-tag-gold">Nächste Schritte</span>
+                <span className="panel-mini-tag panel-mini-tag-gold">Priorisiert für dich</span>
               </div>
 
               <div className="recommendation-grid recommendation-grid-compact">
                 {result.recommendations.map((item, index) => (
                   <article
                     key={item.title}
-                    className="recommendation-card recommendation-card-compact recommendation-card-premium"
+                    className="recommendation-card recommendation-card-editorial recommendation-card-compact recommendation-card-premium"
                   >
-                    <div className="recommendation-index">
-                      {String(index + 1).padStart(2, "0")}
-                    </div>
-                    <div className="recommendation-content">
-                      <h4>{item.title}</h4>
+                    <header className="recommendation-card-head">
+                      <span className="recommendation-index" aria-hidden="true">
+                        {String(index + 1).padStart(2, "0")}
+                      </span>
+                      <h4 className="recommendation-title">{item.title}</h4>
+                    </header>
+                    <div className="recommendation-body">
                       <LockedFadeContent locked={teaserMode} maxLines={5}>
-                        <p>{item.description}</p>
+                        <p className="recommendation-text">{item.description}</p>
                       </LockedFadeContent>
                     </div>
                   </article>
                 ))}
               </div>
             </div>
+
+            <AccountProtectionModule className="result-safety-strip idradar-export-section" />
           </div>
 
           {teaserMode ? <UnlockFullAnalysisCta result={result} onUnlock={goPremium} /> : null}
