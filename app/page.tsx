@@ -17,6 +17,10 @@ import {
   DEMO_SCAN_RESULT,
   isDemoScanEntryAllowed,
 } from "@/lib/demo-scan-result";
+import {
+  consumeDeepScanResultToastPending,
+  consumeUnlockSuccessToast,
+} from "@/lib/post-purchase-feedback";
 import { ScanResponse } from "@/types/scan";
 
 function IconGlobe() {
@@ -111,6 +115,7 @@ function HomePageInner() {
   const searchParams = useSearchParams();
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [result, setResult] = useState<ScanResponse | null>(null);
+  const [purchaseToast, setPurchaseToast] = useState<string | null>(null);
 
   const demoEntryAllowed = isDemoScanEntryAllowed();
 
@@ -136,6 +141,18 @@ function HomePageInner() {
       saveScanSnapshotForPremium(result);
     }
   }, [result]);
+
+  useEffect(() => {
+    if (!result || !detailUnlocked) return;
+    if (!consumeUnlockSuccessToast()) return;
+    setPurchaseToast("Analyse erfolgreich freigeschaltet");
+  }, [result, detailUnlocked]);
+
+  useEffect(() => {
+    if (!purchaseToast) return;
+    const id = window.setTimeout(() => setPurchaseToast(null), 4500);
+    return () => window.clearTimeout(id);
+  }, [purchaseToast]);
 
   useEffect(() => {
     const open = searchParams.get("openScan");
@@ -189,6 +206,13 @@ function HomePageInner() {
   function resetScan() {
     setResult(null);
     clearScanSnapshotForPremium();
+  }
+
+  function handleScanResult(data: ScanResponse) {
+    setResult(data);
+    if (consumeDeepScanResultToastPending()) {
+      setPurchaseToast("Deep Scan erfolgreich durchgeführt");
+    }
   }
 
   return (
@@ -487,12 +511,18 @@ function HomePageInner() {
                     </span>
                   </div>
                 ) : null}
-                <ScanForm onResult={setResult} />
+                <ScanForm onResult={handleScanResult} />
               </>
             )}
           </div>
         </div>
       </div>
+
+      {purchaseToast ? (
+        <div className="idradar-purchase-toast" role="status" aria-live="polite">
+          {purchaseToast}
+        </div>
+      ) : null}
     </>
   );
 }

@@ -3526,6 +3526,56 @@ a.landing-tap:hover {
   cursor: wait;
 }
 
+.premium-pricing-cta--busy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.premium-pricing-cta-spinner {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(20, 17, 10, 0.22);
+  border-top-color: #14110a;
+  border-radius: 50%;
+  animation: idradar-cta-spin 0.75s linear infinite;
+}
+
+@keyframes idradar-cta-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-pricing-cta-spinner {
+    animation: none;
+    border-top-color: rgba(20, 17, 10, 0.5);
+  }
+}
+
+.idradar-purchase-toast {
+  position: fixed;
+  bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  max-width: min(420px, calc(100vw - 32px));
+  padding: 14px 20px;
+  border-radius: 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.94);
+  background: rgba(14, 14, 18, 0.94);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
 .premium-pricing-error {
   margin: 12px 0 0;
   font-size: 0.88rem;

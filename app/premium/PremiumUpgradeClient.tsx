@@ -11,6 +11,20 @@ import {
 } from "@/lib/premium-intent";
 import { loadScanSnapshotForPremium, setResultDetailUnlockedForKey } from "@/lib/premium-client-storage";
 import { getResultViewKey } from "@/lib/result-view-key";
+import {
+  armDeepScanResultToastPending,
+  armUnlockSuccessToast,
+} from "@/lib/post-purchase-feedback";
+
+/** Simulated payment delay (ms) — Stripe: remove and rely on redirect / webhook latency. */
+const MOCK_PAYMENT_DELAY_MS_MIN = 1000;
+const MOCK_PAYMENT_DELAY_MS_MAX = 1500;
+
+function mockCheckoutDelay(): Promise<void> {
+  const span = MOCK_PAYMENT_DELAY_MS_MAX - MOCK_PAYMENT_DELAY_MS_MIN;
+  const ms = MOCK_PAYMENT_DELAY_MS_MIN + Math.floor(Math.random() * span);
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /** Flow B — after daily limit: one new AI Deep Scan (not unlocking an existing result). */
 const FEATURES_BUY_SCAN = [
@@ -90,6 +104,13 @@ function FeatureIcon({ name }: { name: FeatureIconName }) {
   }
 }
 
+/**
+ * Mock purchase — same branching as future Stripe success handler.
+ *
+ * Stripe (later): replace `mockCheckoutDelay` + `fetch("/api/premium/mock-grant")` with
+ * e.g. `redirectToStripeCheckout({ intent })`, then complete unlock / allowance in webhook
+ * or `session_id` success route using the same intent + redirects below.
+ */
 export default function PremiumUpgradeClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -135,9 +156,12 @@ export default function PremiumUpgradeClient() {
         status: "Bezahlfunktion folgt in Kürze",
       };
 
-  async function simulatePayment() {
+  async function handleMockPurchase() {
     setError("");
     setBusy(true);
+
+    await mockCheckoutDelay();
+
     try {
       if (intent === PREMIUM_INTENT.UNLOCK_EXISTING_RESULT) {
         const snap = loadScanSnapshotForPremium();
@@ -145,6 +169,7 @@ export default function PremiumUpgradeClient() {
           setError(
             "Kein gespeichertes Ergebnis. Bitte starte zuerst einen Scan und öffne das Ergebnis."
           );
+          setBusy(false);
           return;
         }
 
@@ -157,10 +182,12 @@ export default function PremiumUpgradeClient() {
 
         if (!res.ok || !data.ok) {
           setError(typeof data.error === "string" ? data.error : "Aktion fehlgeschlagen.");
+          setBusy(false);
           return;
         }
 
         setResultDetailUnlockedForKey(getResultViewKey(snap));
+        armUnlockSuccessToast();
         router.push("/?openScan=1&showResult=1");
         return;
       }
@@ -174,13 +201,15 @@ export default function PremiumUpgradeClient() {
 
       if (!res.ok || !data.ok) {
         setError(typeof data.error === "string" ? data.error : "Aktion fehlgeschlagen.");
+        setBusy(false);
         return;
       }
 
+      /** HttpOnly cookie `idradar_psa` set by API — one bypass of daily limit; cleared on successful /api/scan. */
+      armDeepScanResultToastPending();
       router.push("/?openScan=1");
     } catch {
       setError("Netzwerkfehler. Bitte versuche es erneut.");
-    } finally {
       setBusy(false);
     }
   }
@@ -235,13 +264,22 @@ export default function PremiumUpgradeClient() {
             ) : null}
             <button
               type="button"
-              className="premium-pricing-cta premium-pricing-cta--active"
-              onClick={simulatePayment}
+              className={`premium-pricing-cta premium-pricing-cta--active${
+                busy ? " premium-pricing-cta--busy" : ""
+              }`}
+              onClick={handleMockPurchase}
               disabled={busy}
               aria-busy={busy}
               aria-describedby="premium-status-msg"
             >
-              {busy ? "Einen Moment…" : pricing.cta}
+              {busy ? (
+                <>
+                  <span className="premium-pricing-cta-spinner" aria-hidden />
+                  <span>Zahlung wird verarbeitet...</span>
+                </>
+              ) : (
+                pricing.cta
+              )}
             </button>
             {error ? <p className="premium-pricing-error">{error}</p> : null}
             <p className="premium-pricing-status" id="premium-status-msg">

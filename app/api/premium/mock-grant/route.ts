@@ -14,9 +14,9 @@ type Body = {
 };
 
 /**
- * Mock payment success — production path will swap for Stripe webhook / session confirm.
- * - buy_premium_scan: sets HttpOnly cookie so /api/scan can bypass daily limit once.
- * - unlock_existing_result: no server state; client marks unlock in sessionStorage.
+ * Mock payment success — replace with Stripe Checkout + webhook (or success URL) later.
+ * - buy_premium_scan: sets HttpOnly `idradar_psa` cookie; /api/scan consumes it on one successful scan.
+ * - unlock_existing_result: no server state; client unlock flag in sessionStorage (see setResultDetailUnlockedForKey).
  */
 export async function POST(request: Request) {
   let body: Body = {};
