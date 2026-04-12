@@ -2990,6 +2990,7 @@ a.landing-tap:hover {
 }
 
 .limit-modal-cta-primary {
+  appearance: none;
   position: relative;
   z-index: 1;
   display: block;
@@ -3124,5 +3125,263 @@ a.landing-tap:hover {
     opacity: 1;
     transform: none;
     pointer-events: auto;
+  }
+}
+
+/* =========================
+   PREMIUM / UPGRADE PAGE
+========================= */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.premium-page {
+  position: relative;
+  min-height: 100vh;
+  padding: 48px 20px 80px;
+  overflow-x: hidden;
+}
+
+.premium-page-glow {
+  position: fixed;
+  z-index: 0;
+  border-radius: 999px;
+  filter: blur(100px);
+  pointer-events: none;
+  opacity: 0.32;
+}
+
+.premium-page-glow--one {
+  top: -80px;
+  right: -100px;
+  width: 320px;
+  height: 320px;
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.premium-page-glow--two {
+  bottom: 0;
+  left: -120px;
+  width: 360px;
+  height: 280px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.premium-page-main {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.premium-hero {
+  margin-bottom: 48px;
+  text-align: center;
+}
+
+.premium-hero-kicker {
+  display: inline-block;
+  margin-bottom: 18px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.85);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.premium-hero-title {
+  margin: 0 0 18px;
+  font-size: clamp(2rem, 5.5vw, 2.85rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+  color: var(--text);
+}
+
+.premium-hero-sub {
+  margin: 0 auto;
+  max-width: 560px;
+  font-size: 1.12rem;
+  line-height: 1.6;
+  color: var(--text-soft);
+}
+
+.premium-features {
+  margin-bottom: 48px;
+}
+
+.premium-feature-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.premium-feature-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 22px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.018));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.premium-feature-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  color: rgba(232, 212, 150, 0.75);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.12);
+}
+
+.premium-feature-title {
+  margin: 0 0 6px;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.premium-feature-body {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.premium-pricing {
+  margin-bottom: 40px;
+}
+
+.premium-pricing-card {
+  padding: 36px 28px 32px;
+  border-radius: var(--radius-xl);
+  text-align: center;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.12), transparent 55%),
+    linear-gradient(180deg, rgba(18, 18, 22, 0.95), rgba(8, 8, 12, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.premium-pricing-label {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.9);
+}
+
+.premium-pricing-amount {
+  margin: 0 0 12px;
+  font-size: clamp(2.2rem, 6vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.premium-pricing-currency {
+  font-size: 0.55em;
+  font-weight: 600;
+  color: var(--text-soft);
+  margin-right: 4px;
+}
+
+.premium-pricing-period {
+  font-size: 0.42em;
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.premium-pricing-note {
+  margin: 0 0 28px;
+  font-size: 0.86rem;
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.premium-pricing-cta {
+  appearance: none;
+  width: 100%;
+  max-width: 340px;
+  margin: 0 auto;
+  display: block;
+  padding: 17px 28px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: not-allowed;
+  color: rgba(20, 17, 10, 0.65);
+  background: linear-gradient(180deg, rgba(246, 235, 208, 0.85) 0%, rgba(212, 175, 55, 0.55) 48%, rgba(184, 137, 26, 0.5) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 8px 28px rgba(212, 175, 55, 0.15);
+  transition: opacity 0.2s ease;
+}
+
+.premium-pricing-status {
+  margin: 18px 0 0;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.premium-back-wrap {
+  margin: 0;
+  text-align: center;
+}
+
+.premium-back-link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding-bottom: 2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.premium-back-link:hover {
+  color: rgba(255, 255, 255, 0.78);
+  border-bottom-color: rgba(255, 255, 255, 0.28);
+}
+
+@media (max-width: 640px) {
+  .premium-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-page {
+    padding: 32px 18px 72px;
+  }
+
+  .premium-pricing-card {
+    padding: 28px 22px 26px;
   }
 }

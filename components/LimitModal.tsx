@@ -2,12 +2,11 @@
 
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 
 export type LimitModalProps = {
   open: boolean;
   onClose: () => void;
-  /** e.g. Stripe or landing section; defaults to NEXT_PUBLIC_PREMIUM_UPGRADE_URL or /#warum */
-  premiumHref?: string;
 };
 
 const PREMIUM_VALUES = [
@@ -99,18 +98,18 @@ function LimitRadarLockIcon({ gradientId, glowId }: { gradientId: string; glowId
   );
 }
 
-const defaultPremiumHref =
-  typeof process.env.NEXT_PUBLIC_PREMIUM_UPGRADE_URL === "string" &&
-  process.env.NEXT_PUBLIC_PREMIUM_UPGRADE_URL.length > 0
-    ? process.env.NEXT_PUBLIC_PREMIUM_UPGRADE_URL
-    : "/#warum";
-
-export default function LimitModal({ open, onClose, premiumHref = defaultPremiumHref }: LimitModalProps) {
+export default function LimitModal({ open, onClose }: LimitModalProps) {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [showCtaBlock, setShowCtaBlock] = useState(false);
   const rawId = useId().replace(/:/g, "");
   const gradientId = `limit-grad-${rawId}`;
   const glowId = `limit-glow-${rawId}`;
+
+  function goPremium() {
+    onClose();
+    router.push("/premium");
+  }
 
   useEffect(() => {
     setMounted(true);
@@ -194,9 +193,9 @@ export default function LimitModal({ open, onClose, premiumHref = defaultPremium
 
         <div className={`limit-modal-cta-reveal ${showCtaBlock ? "limit-modal-cta-reveal--visible" : ""}`}>
           <div className="limit-modal-cta-primary-spotlight">
-            <a className="limit-modal-cta-primary" href={premiumHref} onClick={onClose}>
+            <button type="button" className="limit-modal-cta-primary" onClick={goPremium}>
               Premium freischalten
-            </a>
+            </button>
           </div>
           <button type="button" className="limit-modal-cta-secondary" onClick={onClose}>
             Morgen erneut versuchen
