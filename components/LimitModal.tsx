@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { PREMIUM_INTENT, PREMIUM_INTENT_QUERY } from "@/lib/premium-intent";
 
 export type LimitModalProps = {
   open: boolean;
@@ -108,7 +109,7 @@ export default function LimitModal({ open, onClose }: LimitModalProps) {
 
   function goPremium() {
     onClose();
-    router.push("/premium");
+    router.push(`/premium?${PREMIUM_INTENT_QUERY}=${PREMIUM_INTENT.BUY_PREMIUM_SCAN}`);
   }
 
   useEffect(() => {
@@ -194,7 +195,7 @@ export default function LimitModal({ open, onClose }: LimitModalProps) {
         <div className={`limit-modal-cta-reveal ${showCtaBlock ? "limit-modal-cta-reveal--visible" : ""}`}>
           <div className="limit-modal-cta-primary-spotlight">
             <button type="button" className="limit-modal-cta-primary" onClick={goPremium}>
-              Premium freischalten
+              Premium-Scan freischalten
             </button>
           </div>
           <button type="button" className="limit-modal-cta-secondary" onClick={onClose}>

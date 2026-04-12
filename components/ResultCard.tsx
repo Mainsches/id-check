@@ -1,11 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
+import { saveScanSnapshotForPremium } from "@/lib/premium-client-storage";
+import { PREMIUM_INTENT, PREMIUM_INTENT_QUERY } from "@/lib/premium-intent";
 import { ScanResponse, FindingItem } from "@/types/scan";
 
 type ResultCardProps = {
   result: ScanResponse;
   onReset: () => void;
+  /** Full detail (post-unlock). When false, findings/summary/recs show as teaser. */
+  detailUnlocked: boolean;
 };
 
 function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
@@ -119,7 +124,7 @@ function renderSummaryBlocks(aiSummary: string) {
   return { headline, support };
 }
 
-export default function ResultCard({ result, onReset }: ResultCardProps) {
+export default function ResultCard({ result, onReset, detailUnlocked }: ResultCardProps) {
   const [showPlatformInfo, setShowPlatformInfo] = useState(false);
 
   const riskClass =
@@ -217,7 +222,11 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
         </div>
       </div>
 
-      <div className="dashboard-grid">
+      <div className="result-gated">
+        <div
+          className={`result-gated-inner ${!detailUnlocked ? "result-gated-inner--locked" : ""}`}
+        >
+          <div className="dashboard-grid">
         <div className="panel panel-findings panel-compact panel-premium">
           <div className="panel-header-row">
             <h3>Erkenntnisse</h3>
@@ -366,6 +375,37 @@ export default function ResultCard({ result, onReset }: ResultCardProps) {
             ))}
           </div>
         </div>
+          </div>
+        </div>
+
+        {!detailUnlocked ? (
+          <div className="result-gated-veil">
+            <div className="result-gated-veil-card">
+              <p className="result-gated-veil-kicker">Vorschau</p>
+              <p className="result-gated-veil-title">Vollständige Analyse freischalten</p>
+              <p className="result-gated-veil-text">
+                Dieser Scan ist bereits bereit — schalte alle Treffer, Plattformen und Erklärungen für
+                dieses Ergebnis frei.
+              </p>
+              <div className="result-gated-veil-actions">
+                <Link
+                  href={`/premium?${PREMIUM_INTENT_QUERY}=${PREMIUM_INTENT.UNLOCK_EXISTING_RESULT}`}
+                  className="result-gated-cta-primary"
+                  onClick={() => saveScanSnapshotForPremium(result)}
+                >
+                  Vollständige Analyse freischalten
+                </Link>
+                <Link
+                  href={`/premium?${PREMIUM_INTENT_QUERY}=${PREMIUM_INTENT.UNLOCK_EXISTING_RESULT}`}
+                  className="result-gated-cta-secondary"
+                  onClick={() => saveScanSnapshotForPremium(result)}
+                >
+                  Alle Treffer und Details anzeigen
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   );

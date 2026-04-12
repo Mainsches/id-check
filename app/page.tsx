@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ScanForm from "@/components/ScanForm";
 import ResultCard from "@/components/ResultCard";
 import HeroRadarVisual from "@/components/HeroRadarVisual";
+import {
+  clearScanSnapshotForPremium,
+  isResultDetailUnlocked,
+  loadScanSnapshotForPremium,
+  saveScanSnapshotForPremium,
+} from "@/lib/premium-client-storage";
 import { ScanResponse } from "@/types/scan";
 
 function IconGlobe() {
@@ -93,9 +100,16 @@ function IconLock() {
   );
 }
 
-export default function HomePage() {
+function HomePageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [result, setResult] = useState<ScanResponse | null>(null);
+
+  const detailUnlocked = useMemo(
+    () => (result ? isResultDetailUnlocked(result) : false),
+    [result]
+  );
 
   useEffect(() => {
     if (isScanOpen) {
@@ -109,6 +123,35 @@ export default function HomePage() {
     };
   }, [isScanOpen]);
 
+  useEffect(() => {
+    if (result) {
+      saveScanSnapshotForPremium(result);
+    }
+  }, [result]);
+
+  useEffect(() => {
+    const open = searchParams.get("openScan");
+    if (open !== "1") {
+      return;
+    }
+
+    const showResult = searchParams.get("showResult");
+
+    if (showResult === "1") {
+      const snap = loadScanSnapshotForPremium();
+      if (snap) {
+        setResult(snap);
+        setIsScanOpen(true);
+        clearScanSnapshotForPremium();
+      }
+    } else {
+      setResult(null);
+      setIsScanOpen(true);
+    }
+
+    router.replace("/", { scroll: false });
+  }, [searchParams, router]);
+
   function openScan() {
     setIsScanOpen(true);
   }
@@ -116,10 +159,12 @@ export default function HomePage() {
   function closeScan() {
     setIsScanOpen(false);
     setResult(null);
+    clearScanSnapshotForPremium();
   }
 
   function resetScan() {
     setResult(null);
+    clearScanSnapshotForPremium();
   }
 
   return (
@@ -375,7 +420,11 @@ export default function HomePage() {
 
           <div className="scan-overlay-content">
             {result ? (
-              <ResultCard result={result} onReset={resetScan} />
+              <ResultCard
+                result={result}
+                onReset={resetScan}
+                detailUnlocked={detailUnlocked}
+              />
             ) : (
               <ScanForm onResult={setResult} />
             )}
@@ -383,5 +432,13 @@ export default function HomePage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageInner />
+    </Suspense>
   );
 }

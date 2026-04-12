@@ -1,7 +1,12 @@
 export const runtime = "nodejs";
 
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { formatRemainingTime, hasRedisRateLimitConfig, reserveDailyScan } from "@/lib/daily-scan-limit";
+import {
+  buildClearPremiumScanAllowanceCookie,
+  PREMIUM_SCAN_ALLOWANCE_COOKIE,
+} from "@/lib/premium-scan-cookie";
 import {
   ScanRequestBody,
   ScanResponse,
@@ -794,22 +799,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const dailyLimitReservation = await reserveDailyScan(clientIp);
+    const cookieStore = await cookies();
+    const premiumScanAllowance =
+      cookieStore.get(PREMIUM_SCAN_ALLOWANCE_COOKIE)?.value === "1";
+    let consumedPremiumScanAllowance = false;
 
-    if (!dailyLimitReservation.allowed) {
-      return NextResponse.json(
-        {
-          error: `Von dieser Verbindung wurde heute bereits ein Scan durchgeführt. Bitte versuche es in ${formatRemainingTime(
-            dailyLimitReservation.remainingMs
-          )} erneut.`,
-        },
-        {
-          status: 429,
-          headers: {
-            "Retry-After": String(dailyLimitReservation.retryAfterSeconds),
+    if (premiumScanAllowance) {
+      consumedPremiumScanAllowance = true;
+    } else {
+      const dailyLimitReservation = await reserveDailyScan(clientIp);
+
+      if (!dailyLimitReservation.allowed) {
+        return NextResponse.json(
+          {
+            error: `Von dieser Verbindung wurde heute bereits ein Scan durchgeführt. Bitte versuche es in ${formatRemainingTime(
+              dailyLimitReservation.remainingMs
+            )} erneut.`,
           },
-        }
-      );
+          {
+            status: 429,
+            headers: {
+              "Retry-After": String(dailyLimitReservation.retryAfterSeconds),
+            },
+          }
+        );
+      }
     }
 
     const fullName = `${firstName} ${lastName}`.trim();
@@ -1044,11 +1058,21 @@ export async function POST(request: Request) {
       },
     };
 
+    const responseHeaders = new Headers();
+    responseHeaders.set(
+      "X-RateLimit-Storage",
+      hasRedisRateLimitConfig() ? "redis" : "memory"
+    );
+    if (consumedPremiumScanAllowance) {
+      responseHeaders.append(
+        "Set-Cookie",
+        buildClearPremiumScanAllowanceCookie()
+      );
+    }
+
     return NextResponse.json(result, {
       status: 200,
-      headers: {
-        "X-RateLimit-Storage": hasRedisRateLimitConfig() ? "redis" : "memory",
-      },
+      headers: responseHeaders,
     });
   } catch (error: unknown) {
     const message =
