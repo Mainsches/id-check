@@ -2805,3 +2805,179 @@ a.landing-tap:hover {
     font-size: 0.86rem;
   }
 }
+
+/* =========================
+   DAILY LIMIT MODAL
+========================= */
+
+.limit-modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 160;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-bottom));
+  pointer-events: auto;
+}
+
+.limit-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: rgba(4, 5, 10, 0.78);
+  backdrop-filter: blur(14px) saturate(1.06);
+  -webkit-backdrop-filter: blur(14px) saturate(1.06);
+  animation: limitModalBackdropIn 0.3s ease forwards;
+}
+
+.limit-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  padding: 28px 26px 26px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.09), transparent 42%),
+    linear-gradient(180deg, rgba(16, 16, 20, 0.98), rgba(8, 8, 12, 0.99));
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 24px 64px rgba(0, 0, 0, 0.55),
+    0 0 80px rgba(212, 175, 55, 0.06);
+  animation: limitModalPanelIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.limit-modal-icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.limit-modal-icon-svg {
+  width: 72px;
+  height: 72px;
+  display: block;
+  filter: drop-shadow(0 0 18px rgba(232, 212, 150, 0.35));
+}
+
+.limit-modal-title {
+  margin: 0 0 12px;
+  font-size: clamp(1.35rem, 4vw, 1.55rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-align: center;
+  color: var(--text);
+}
+
+.limit-modal-lead {
+  margin: 0 0 10px;
+  font-size: 1.02rem;
+  line-height: 1.55;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.limit-modal-sub {
+  margin: 0 0 24px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.limit-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.limit-modal-cta-primary {
+  display: block;
+  width: 100%;
+  padding: 16px 22px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 1.05rem;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  color: #14110a;
+  background: linear-gradient(180deg, #f3e5a8 0%, #d4af37 48%, #b8891a 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.35) inset,
+    0 10px 28px rgba(212, 175, 55, 0.28);
+  transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+}
+
+.limit-modal-cta-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.4) inset,
+    0 12px 32px rgba(212, 175, 55, 0.34);
+}
+
+.limit-modal-cta-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.limit-modal-cta-secondary {
+  appearance: none;
+  padding: 14px 18px;
+  border: none;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.96rem;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  transition: color var(--transition), background var(--transition);
+}
+
+.limit-modal-cta-secondary:hover {
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@keyframes limitModalBackdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes limitModalPanelIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .limit-modal-backdrop,
+  .limit-modal-panel {
+    animation: none;
+    opacity: 1;
+  }
+
+  .limit-modal-panel {
+    transform: none;
+  }
+}

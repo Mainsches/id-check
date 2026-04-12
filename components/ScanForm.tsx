@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { FormEvent, useEffect, useState } from "react";
+import LimitModal from "@/components/LimitModal";
 import { ScanRequestBody, ScanResponse } from "@/types/scan";
 
 type ScanFormProps = {
@@ -48,6 +49,7 @@ export default function ScanForm({ onResult }: ScanFormProps) {
   const [formStartedAt] = useState<number>(Date.now());
   const [honeypot, setHoneypot] = useState("");
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
@@ -185,10 +187,18 @@ export default function ScanForm({ onResult }: ScanFormProps) {
         }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        setError(data?.error || "Beim Scan ist ein Fehler aufgetreten.");
+        if (response.status === 429) {
+          setShowLimitModal(true);
+          setError("");
+          return;
+        }
+        setError(
+          (typeof data?.error === "string" && data.error) ||
+            "Beim Scan ist ein Fehler aufgetreten."
+        );
         return;
       }
 
@@ -202,6 +212,8 @@ export default function ScanForm({ onResult }: ScanFormProps) {
 
   return (
     <>
+      <LimitModal open={showLimitModal} onClose={() => setShowLimitModal(false)} />
+
       {siteKey ? (
         <Script
           src="https://challenges.cloudflare.com/turnstile/v0/api.js"
