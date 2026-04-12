@@ -11,9 +11,9 @@ export type LimitModalProps = {
 };
 
 const PREMIUM_VALUES = [
-  "Unbegrenzte Scans",
-  "Tiefere Analyse deiner Online-Präsenz",
-  "Erweiterte Risiko-Erkennung",
+  "1 vollständiger Premium-Scan",
+  "Detaillierte Treffer und Verknüpfungen",
+  "Klare Risiko-Einschätzung ohne Kürzung",
 ] as const;
 
 function CheckIcon({ className }: { className?: string }) {
@@ -168,22 +168,16 @@ export default function LimitModal({ open, onClose }: LimitModalProps) {
           <LimitRadarLockIcon gradientId={gradientId} glowId={glowId} />
         </div>
 
-        <div className="limit-modal-badge-row">
-          <span className="limit-modal-badge">Free Plan</span>
-        </div>
-
         <h2 id="limit-modal-title" className="limit-modal-title">
           Kostenloses Limit erreicht
         </h2>
-        <p className="limit-modal-lead">
-          Du hast deinen kostenlosen Scan für heute bereits verwendet — so siehst du, was der Free Plan
-          bietet.
-        </p>
+        <p className="limit-modal-lead">Du hast deinen kostenlosen Scan für heute bereits verwendet.</p>
         <p className="limit-modal-sub">
-          Mit Premium gehst du weiter: mehr Einblick, ohne tägliche Begrenzung.
+          Mit einem Premium-Scan erhältst du sofort eine vollständige Analyse ohne Tageslimit für diesen einen
+          Scan.
         </p>
 
-        <ul className="limit-modal-values" aria-label="Premium-Vorteile">
+        <ul className="limit-modal-values" aria-label="Premium-Scan">
           {PREMIUM_VALUES.map((line) => (
             <li key={line} className="limit-modal-value-row">
               <CheckIcon className="limit-modal-value-check" />
@@ -195,13 +189,13 @@ export default function LimitModal({ open, onClose }: LimitModalProps) {
         <div className={`limit-modal-cta-reveal ${showCtaBlock ? "limit-modal-cta-reveal--visible" : ""}`}>
           <div className="limit-modal-cta-primary-spotlight">
             <button type="button" className="limit-modal-cta-primary" onClick={goPremium}>
-              Premium-Scan freischalten
+              Premium-Scan für CHF 4.90 freischalten
             </button>
           </div>
           <button type="button" className="limit-modal-cta-secondary" onClick={onClose}>
             Morgen erneut versuchen
           </button>
-          <p className="limit-modal-trust">Keine Registrierung erforderlich</p>
+          <p className="limit-modal-trust">Kein Abo. Kein Login erforderlich.</p>
         </div>
       </div>
     </div>,
