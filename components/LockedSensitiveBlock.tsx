@@ -26,7 +26,7 @@ export default function LockedSensitiveBlock({
           type="button"
           className="locked-sensitive-veil"
           onClick={onUnlock}
-          aria-label={`${overlayLabel} — Premium freischalten`}
+          aria-label={overlayLabel}
         >
           <span className="locked-sensitive-veil-icon" aria-hidden>
             🔒

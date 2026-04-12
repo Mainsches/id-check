@@ -3,9 +3,9 @@ import { Suspense } from "react";
 import PremiumUpgradeClient from "./PremiumUpgradeClient";
 
 export const metadata: Metadata = {
-  title: "Premium · ID Radar",
+  title: "AI Deep Scan · ID Radar",
   description:
-    "Einmalig CHF 4.90: Ein vollständiger Premium-Scan mit detailliertem Ergebnis — ohne Abo, ohne Login.",
+    "Einmalig CHF 4.90: AI Deep Scan für eine neue Tiefenanalyse — oder AI Deep Analyse für ein vorliegendes Ergebnis freischalten. Ohne Abo, ohne Login.",
 };
 
 function PremiumFallback() {

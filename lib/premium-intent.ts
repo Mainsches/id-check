@@ -1,5 +1,5 @@
 /**
- * Premium purchase / upgrade intents — keep in sync with UI query params and copy.
+ * Purchase intents (UI: AI Deep Scan vs. AI Deep Analyse) — keep in sync with query params and copy.
  */
 export const PREMIUM_INTENT_QUERY = "intent";
 

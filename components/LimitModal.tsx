@@ -10,9 +10,9 @@ export type LimitModalProps = {
   onClose: () => void;
 };
 
-const PREMIUM_VALUES = [
-  "1 vollständiger Premium-Scan",
-  "Detaillierte Treffer und Verknüpfungen",
+const AI_DEEP_SCAN_BULLETS = [
+  "1 AI Deep Scan — vollständige Tiefenanalyse",
+  "Intelligente Verknüpfung von Profilen und Signalen",
   "Klare Risiko-Einschätzung ohne Kürzung",
 ] as const;
 
@@ -173,12 +173,12 @@ export default function LimitModal({ open, onClose }: LimitModalProps) {
         </h2>
         <p className="limit-modal-lead">Du hast deinen kostenlosen Scan für heute bereits verwendet.</p>
         <p className="limit-modal-sub">
-          Mit einem Premium-Scan erhältst du sofort eine vollständige Analyse ohne Tageslimit für diesen einen
-          Scan.
+          Mit einem AI Deep Scan erhältst du eine neue vollständige Tiefenanalyse ohne Tageslimit — einmalig für
+          diesen Kauf.
         </p>
 
-        <ul className="limit-modal-values" aria-label="Premium-Scan">
-          {PREMIUM_VALUES.map((line) => (
+        <ul className="limit-modal-values" aria-label="Leistungen eines AI Deep Scans">
+          {AI_DEEP_SCAN_BULLETS.map((line) => (
             <li key={line} className="limit-modal-value-row">
               <CheckIcon className="limit-modal-value-check" />
               <span>{line}</span>
@@ -189,7 +189,7 @@ export default function LimitModal({ open, onClose }: LimitModalProps) {
         <div className={`limit-modal-cta-reveal ${showCtaBlock ? "limit-modal-cta-reveal--visible" : ""}`}>
           <div className="limit-modal-cta-primary-spotlight">
             <button type="button" className="limit-modal-cta-primary" onClick={goPremium}>
-              Premium-Scan für CHF 4.90 freischalten
+              AI Deep Scan für CHF 4.90 freischalten
             </button>
           </div>
           <button type="button" className="limit-modal-cta-secondary" onClick={onClose}>

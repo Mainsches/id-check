@@ -347,7 +347,11 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                             </span>
                           </div>
 
-                          <LockedSensitiveBlock locked={teaserMode} onUnlock={goPremium}>
+                          <LockedSensitiveBlock
+                            locked={teaserMode}
+                            onUnlock={goPremium}
+                            overlayLabel="AI Deep Analyse freischalten"
+                          >
                             {finding.url ? (
                               <a
                                 href={finding.url}
@@ -440,7 +444,7 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
             </div>
           </div>
 
-          {teaserMode ? <UnlockFullAnalysisCta onUnlock={goPremium} /> : null}
+          {teaserMode ? <UnlockFullAnalysisCta result={result} onUnlock={goPremium} /> : null}
         </div>
       </div>
     </section>

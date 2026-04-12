@@ -12,16 +12,16 @@ import {
 import { loadScanSnapshotForPremium, setResultDetailUnlockedForKey } from "@/lib/premium-client-storage";
 import { getResultViewKey } from "@/lib/result-view-key";
 
-/** After daily limit: one new full premium scan (not unlock of existing result). */
+/** Flow B — after daily limit: one new AI Deep Scan (not unlocking an existing result). */
 const FEATURES_BUY_SCAN = [
   {
     title: "Alle relevanten Treffer sichtbar",
-    body: "Profile, Verknüpfungen und Signale in voller Ansicht.",
+    body: "Intelligente Verknüpfung von Profilen und Signalen über viele Quellen hinweg.",
     icon: "grid",
   },
   {
-    title: "Detaillierte Risiko-Einschätzung",
-    body: "Klar erklärt, warum deine Identität auffindbar wirkt.",
+    title: "AI-basierte Risikoanalyse",
+    body: "Klar erklärt, warum deine Identität öffentlich auffindbar wirkt — mit kontextsensitiver Einordnung.",
     icon: "chart",
   },
   {
@@ -31,16 +31,16 @@ const FEATURES_BUY_SCAN = [
   },
 ] as const;
 
-/** Unlock existing partial result (different product promise). */
+/** Flow A — unlock existing partial result (same UI path, different promise). */
 const FEATURES_UNLOCK = [
   {
-    title: "Alle Treffer sichtbar",
-    body: "Profile, Hinweise und Verknüpfungen — auf einen Blick.",
+    title: "Alle Details dieser Analyse",
+    body: "Profile, Hinweise und Verknüpfungen — auf einen Blick sichtbar machen.",
     icon: "grid",
   },
   {
-    title: "Risiko verständlich erklärt",
-    body: "Klare Einordnung — ohne Fachjargon.",
+    title: "Risiko & Verknüpfungen",
+    body: "KI analysiert Muster und Verknüpfungen zwischen deinen öffentlichen Online-Spuren — und ordnet das Risiko klar ein.",
     icon: "chart",
   },
   {
@@ -106,13 +106,13 @@ export default function PremiumUpgradeClient() {
   const hero = isBuyScan
     ? {
         kicker: "ID Radar",
-        title: "1 vollständigen Premium-Scan freischalten",
-        sub: "Starte jetzt eine neue vollständige Analyse und sieh alle relevanten Treffer, Verknüpfungen und Risiko-Hinweise im Detail.",
+        title: "AI Deep Scan freischalten",
+        sub: "Neue vollständige Deep-Analyse: relevante Treffer, Verknüpfungen und Risiko-Hinweise — tiefer als der kostenlose Scan, einmalig ohne Abo.",
       }
     : {
         kicker: "ID Radar",
-        title: "Vollständige Analyse freischalten",
-        sub: "Dein Scan ist bereits bereit — sieh jetzt, welche Profile und Verknüpfungen gefunden wurden.",
+        title: "AI Deep Analyse freischalten",
+        sub: "Alle Details dieser Analyse sichtbar machen — inklusive Profile, Verknüpfungen und ausführlicher Einordnung.",
       };
 
   const features = isBuyScan ? FEATURES_BUY_SCAN : FEATURES_UNLOCK;
@@ -120,18 +120,18 @@ export default function PremiumUpgradeClient() {
   const pricing = isBuyScan
     ? {
         amount: "4.90",
-        subline: "Einmal bezahlen – einen vollständigen Premium-Scan erhalten",
+        subline: "Einmal bezahlen — einen AI Deep Scan erhalten",
         micro: "Kein Abo. Kein Login erforderlich.",
-        trigger: "Nach dem Kauf kannst du sofort einen vollständigen Scan starten.",
-        cta: "Jetzt Premium-Scan starten",
+        trigger: "Nach dem Kauf kannst du sofort die vollständige Deep-Analyse starten.",
+        cta: "Jetzt vollständige Analyse starten",
         status: "Bezahlfunktion folgt in Kürze",
       }
     : {
         amount: "4.90",
-        subline: "Einmal freischalten – alle Details dieses Ergebnisses sehen",
+        subline: "Einmal freischalten — alle Details dieser Analyse sichtbar machen",
         micro: "Kein Abo. Kein Login erforderlich.",
-        trigger: "Nach der Zahlung sind alle Inhalte dieses Scans sichtbar.",
-        cta: "Jetzt vollständigen Scan anzeigen",
+        trigger: "Nach der Zahlung sind alle Deep-Insights dieses Ergebnisses sichtbar.",
+        cta: "AI Deep Analyse freischalten",
         status: "Bezahlfunktion folgt in Kürze",
       };
 
@@ -199,7 +199,7 @@ export default function PremiumUpgradeClient() {
 
         <section className="premium-features" aria-labelledby="premium-features-heading">
           <h2 id="premium-features-heading" className="visually-hidden">
-            {isBuyScan ? "Enthalten in diesem Premium-Scan" : "Was du siehst"}
+            {isBuyScan ? "Was der AI Deep Scan liefert" : "Was die AI Deep Analyse umfasst"}
           </h2>
           <ul className="premium-feature-grid">
             {features.map((f) => (
@@ -229,7 +229,9 @@ export default function PremiumUpgradeClient() {
             <p className="premium-pricing-micro">{pricing.micro}</p>
             <p className="premium-pricing-trigger">{pricing.trigger}</p>
             {!isBuyScan ? (
-              <p className="premium-pricing-urgency">Nur noch gesperrt – mit einem Klick sichtbar</p>
+              <p className="premium-pricing-urgency">
+                Die wichtigsten Details wurden bereits erkannt – sie sind aktuell noch gesperrt.
+              </p>
             ) : null}
             <button
               type="button"

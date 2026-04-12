@@ -3701,10 +3701,18 @@ a.landing-tap:hover {
 }
 
 .result-unlock-cta-copy {
-  margin: 0 0 18px;
+  margin: 0 0 12px;
   font-size: 0.95rem;
   line-height: 1.55;
   color: var(--text-soft);
+}
+
+.result-unlock-cta-hint {
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: rgba(212, 175, 55, 0.78);
 }
 
 .result-unlock-cta-button {
