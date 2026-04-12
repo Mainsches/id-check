@@ -10,6 +10,28 @@ export type LimitModalProps = {
   premiumHref?: string;
 };
 
+const PREMIUM_VALUES = [
+  "Unbegrenzte Scans",
+  "Tiefere Analyse deiner Online-Präsenz",
+  "Erweiterte Risiko-Erkennung",
+] as const;
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" aria-hidden>
+      <circle cx="8" cy="8" r="7.25" stroke="currentColor" strokeWidth="1" opacity={0.22} />
+      <path
+        d="M4.5 8.2 6.85 10.5 11.5 5.85"
+        stroke="currentColor"
+        strokeWidth="1.35"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={0.85}
+      />
+    </svg>
+  );
+}
+
 function LimitRadarLockIcon({ gradientId, glowId }: { gradientId: string; glowId: string }) {
   return (
     <svg
@@ -85,6 +107,7 @@ const defaultPremiumHref =
 
 export default function LimitModal({ open, onClose, premiumHref = defaultPremiumHref }: LimitModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [showCtaBlock, setShowCtaBlock] = useState(false);
   const rawId = useId().replace(/:/g, "");
   const gradientId = `limit-grad-${rawId}`;
   const glowId = `limit-glow-${rawId}`;
@@ -92,6 +115,19 @@ export default function LimitModal({ open, onClose, premiumHref = defaultPremium
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setShowCtaBlock(false);
+      return;
+    }
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShowCtaBlock(true);
+      return;
+    }
+    const t = window.setTimeout(() => setShowCtaBlock(true), 300);
+    return () => window.clearTimeout(t);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -132,21 +168,40 @@ export default function LimitModal({ open, onClose, premiumHref = defaultPremium
           <LimitRadarLockIcon gradientId={gradientId} glowId={glowId} />
         </div>
 
+        <div className="limit-modal-badge-row">
+          <span className="limit-modal-badge">Free Plan</span>
+        </div>
+
         <h2 id="limit-modal-title" className="limit-modal-title">
-          Limit erreicht
+          Kostenloses Limit erreicht
         </h2>
         <p className="limit-modal-lead">
-          Du hast deinen kostenlosen Scan für heute bereits verwendet.
+          Du hast deinen kostenlosen Scan für heute bereits verwendet — so siehst du, was der Free Plan
+          bietet.
         </p>
-        <p className="limit-modal-sub">Versuche es morgen erneut oder erhalte unbegrenzte Scans.</p>
+        <p className="limit-modal-sub">
+          Mit Premium gehst du weiter: mehr Einblick, ohne tägliche Begrenzung.
+        </p>
 
-        <div className="limit-modal-actions">
-          <a className="limit-modal-cta-primary" href={premiumHref} onClick={onClose}>
-            Premium freischalten
-          </a>
+        <ul className="limit-modal-values" aria-label="Premium-Vorteile">
+          {PREMIUM_VALUES.map((line) => (
+            <li key={line} className="limit-modal-value-row">
+              <CheckIcon className="limit-modal-value-check" />
+              <span>{line}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className={`limit-modal-cta-reveal ${showCtaBlock ? "limit-modal-cta-reveal--visible" : ""}`}>
+          <div className="limit-modal-cta-primary-spotlight">
+            <a className="limit-modal-cta-primary" href={premiumHref} onClick={onClose}>
+              Premium freischalten
+            </a>
+          </div>
           <button type="button" className="limit-modal-cta-secondary" onClick={onClose}>
             Morgen erneut versuchen
           </button>
+          <p className="limit-modal-trust">Keine Registrierung erforderlich</p>
         </div>
       </div>
     </div>,
