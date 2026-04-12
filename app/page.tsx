@@ -11,6 +11,12 @@ import {
   loadScanSnapshotForPremium,
   saveScanSnapshotForPremium,
 } from "@/lib/premium-client-storage";
+import {
+  DEMO_RESULT_QUERY,
+  DEMO_RESULT_QUERY_VALUE,
+  DEMO_SCAN_RESULT,
+  isDemoScanEntryAllowed,
+} from "@/lib/demo-scan-result";
 import { ScanResponse } from "@/types/scan";
 
 function IconGlobe() {
@@ -106,6 +112,8 @@ function HomePageInner() {
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [result, setResult] = useState<ScanResponse | null>(null);
 
+  const demoEntryAllowed = isDemoScanEntryAllowed();
+
   const detailUnlocked = useMemo(
     () => (result ? isResultDetailUnlocked(result) : false),
     [result]
@@ -152,7 +160,23 @@ function HomePageInner() {
     router.replace("/", { scroll: false });
   }, [searchParams, router]);
 
+  /** Dev / staging: `/?demo=1` opens the real ResultCard with static data (no API). */
+  useEffect(() => {
+    if (!demoEntryAllowed) return;
+    if (searchParams.get(DEMO_RESULT_QUERY) !== DEMO_RESULT_QUERY_VALUE) return;
+    if (searchParams.get("openScan") === "1") return;
+
+    setResult(DEMO_SCAN_RESULT);
+    setIsScanOpen(true);
+    router.replace("/", { scroll: false });
+  }, [demoEntryAllowed, searchParams, router]);
+
   function openScan() {
+    setIsScanOpen(true);
+  }
+
+  function openDemoResult() {
+    setResult(DEMO_SCAN_RESULT);
     setIsScanOpen(true);
   }
 
@@ -204,6 +228,17 @@ function HomePageInner() {
                 >
                   Ablauf ansehen
                 </a>
+
+                {demoEntryAllowed ? (
+                  <button
+                    type="button"
+                    className="landing-demo-trigger landing-tap"
+                    onClick={openDemoResult}
+                  >
+                    Demo-Ergebnis anzeigen
+                    <span className="landing-demo-trigger-note">ohne API-Scan</span>
+                  </button>
+                ) : null}
               </div>
 
               <p className="landing-hero-trust-micro">
@@ -395,6 +430,17 @@ function HomePageInner() {
               <span className="landing-final-note">
                 Kostenlos · 1 Scan pro Tag
               </span>
+
+              {demoEntryAllowed ? (
+                <button
+                  type="button"
+                  className="landing-demo-trigger landing-demo-trigger--footer landing-tap"
+                  onClick={openDemoResult}
+                >
+                  Demo-Ergebnis anzeigen
+                  <span className="landing-demo-trigger-note">ohne API-Scan</span>
+                </button>
+              ) : null}
             </div>
           </div>
         </section>
@@ -426,7 +472,23 @@ function HomePageInner() {
                 detailUnlocked={detailUnlocked}
               />
             ) : (
-              <ScanForm onResult={setResult} />
+              <>
+                {demoEntryAllowed ? (
+                  <div className="scan-demo-entry">
+                    <button
+                      type="button"
+                      className="scan-demo-entry-button landing-tap"
+                      onClick={openDemoResult}
+                    >
+                      Demo-Ergebnis anzeigen
+                    </button>
+                    <span className="scan-demo-entry-hint">
+                      Vorschau mit Beispieldaten — kein API-Verbrauch
+                    </span>
+                  </div>
+                ) : null}
+                <ScanForm onResult={setResult} />
+              </>
             )}
           </div>
         </div>
