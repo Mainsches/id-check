@@ -678,6 +678,7 @@ function buildSummary(params: {
   cityMentions: number;
 }) {
   const {
+    riskLevel,
     totalEstimatedResults,
     visibilityScore,
     platformSignalsStrong,
@@ -688,33 +689,76 @@ function buildSummary(params: {
     cityMentions,
   } = params;
 
-  const moodLine =
-    params.riskLevel === "High"
-      ? "Deine öffentliche Identität lässt sich relativ leicht über mehrere Quellen hinweg verknüpfen."
-      : params.riskLevel === "Medium"
-      ? "Einige öffentliche Informationen lassen sich weiterhin miteinander verbinden."
-      : "Deine öffentliche Identität wirkt aktuell vergleichsweise gut voneinander getrennt.";
+  const headline =
+    riskLevel === "High"
+      ? "Mehrere Hinweise zeigen, dass deine Identität aktuell relativ leicht miteinander verknüpft werden kann."
+      : riskLevel === "Medium"
+        ? "Es gibt ein paar Stellen, an denen öffentliche Informationen zusammenkommen — genug, dass dich jemand bei Interesse ziemlich zügig einordnen kann."
+        : "Deine öffentlichen Spuren wirken insgesamt eher zurückhaltend — das ist eine gute Basis, sie bewusst so zu halten.";
 
-  const plainSummary =
-    params.riskLevel === "High"
-      ? "Das stärkste Risiko entsteht dadurch, wie einfach jemand deine öffentlichen Informationen plattformübergreifend zusammenführen kann."
-      : params.riskLevel === "Medium"
-      ? "Das Hauptproblem ist nicht nur Sichtbarkeit, sondern wie leicht sich einzelne Informationen miteinander verknüpfen lassen."
-      : "Aktuell ist positiv, dass reine Sichtbarkeit noch kein starkes Identitätsrisiko erzeugt.";
+  const visibilitySentence =
+    visibilityScore >= 7
+      ? `Such- und Index-Sichtbarkeit liegt mit ${visibilityScore} von 10 eher oben: Es gibt vergleichsweise viele Einstiegspunkte, über die man dich findet.`
+      : visibilityScore >= 4
+        ? `Such-Sichtbarkeit liegt mit ${visibilityScore} von 10 im mittleren Bereich — du bist nicht unsichtbar, aber es wirkt noch nicht wie maximale „Schaufenster-Präsenz“ aus jedem Winkel.`
+        : `Such-Sichtbarkeit liegt mit ${visibilityScore} von 10 eher unten — das dämpft typischerweise, wie schnell jemand ein dichtes Gesamtbild zusammensetzt.`;
 
-  return `${moodLine}
+  const resultsSentence =
+    totalEstimatedResults >= 10_000
+      ? `Allein die geschätzte Grössenordnung von rund ${totalEstimatedResults.toLocaleString()} indexierten Treffern zeigt: Du bist online klar präsent.`
+      : totalEstimatedResults >= 1_500
+        ? `Mit grob ${totalEstimatedResults.toLocaleString()} indexierten Treffern ist dein Name im Netz merklich sichtbar — nicht automatisch ein Problem, aber ein realistischer Hebel für Missbrauch.`
+        : `Die geschätzte Trefferzahl liegt bei etwa ${totalEstimatedResults.toLocaleString()} — das ist eher moderat, solange die Treffer nicht unnötig „eindeutig“ sind.`;
 
-${plainSummary}
+  const platformSentence =
+    platformSignalsStrong + platformSignalsWeak === 0
+      ? "Bei sozialen Profilen fällt in dieser Auswertung wenig Verdichtetes auf."
+      : platformSignalsStrong === 1 && platformSignalsWeak <= 1
+        ? "Dazu kommt mindestens ein Profil-Hinweis, der ziemlich klar zu dir passen könnte — Profilvergleiche sind deshalb besonders wertvoll für jemanden, der gezielt sucht."
+        : `Dazu passen etwa ${platformSignalsStrong} klarere und ${platformSignalsWeak} eher vage Profil-Hinweise — zusammen genug, um ein belastbares Bild zu zeichnen, wenn man es zusammensetzt.`;
 
-Es wurden etwa ${totalEstimatedResults.toLocaleString()} indexierte Ergebnisse gefunden, dazu ${platformSignalsStrong} starke Plattform-Treffer, ${platformSignalsWeak} schwächere Plattform-Treffer, ${directoryListingsCount} Verzeichnis-Signal${
-    directoryListingsCount === 1 ? "" : "e"
-  }, ${usernameExposureCount} benutzernamenbezogene Signal${
-    usernameExposureCount === 1 ? "" : "e"
-  }, ${exactNameMatches} starke Identitätstreffer und ${cityMentions} stadtbezogene Signal${
-    cityMentions === 1 ? "" : "e"
-  }.
+  const directorySentence =
+    directoryListingsCount > 0
+      ? directoryListingsCount === 1
+        ? "Verzeichnisse und Personensuchseiten liefern noch einen klaren Zusatz-Hinweis — solche Listen sind oft besonders präzise."
+        : `Verzeichnisse und Personensuchseiten liefern ${directoryListingsCount} klare Hinweise — das sind typische „Fundorte“, an denen Daten gebündelt stehen.`
+      : "In typischen Verzeichnis- und Personensuchlisten fällt aktuell nichts Nennenswertes auf.";
 
-Sichtbarkeitsgewichtung: ${visibilityScore}/10.`;
+  const usernameSentence =
+    usernameExposureCount > 0
+      ? usernameExposureCount === 1
+        ? "Über den Benutzernamen gibt es einen zusätzlichen Treffer, der die Verknüpfung über mehrere Plattformen erleichtern kann."
+        : `Über den Benutzernamen finden sich ${usernameExposureCount} zusätzliche Treffer — das kann eine Art roter Faden werden, wenn Profile sich ähneln.`
+      : "Benutzernamen liefern hier keinen zusätzlichen plattformübergreifenden Faden.";
+
+  const nameSentence =
+    exactNameMatches >= 3
+      ? `Dazu kommen ${exactNameMatches} sehr klare Namens-Treffer — das macht eine eindeutige Zuordnung wahrscheinlicher.`
+      : exactNameMatches >= 1
+        ? `Es gibt ${exactNameMatches} sehr klare Namens-Treffer — je nach Kontext reicht das schon, um dich wiederzuerkennen.`
+        : "Sehr klare Namens-Doppelungen sind in den geprüften Treffern selten.";
+
+  const citySentence =
+    cityMentions > 0
+      ? cityMentions === 1
+        ? "Ein Standort-Hinweis kann Identität zusätzlich verankern — besonders in Kombination mit Name und Profilen."
+        : `${cityMentions} Standort-Hinweise können Identität zusätzlich verankern — besonders in Kombination mit Name und Profilen.`
+      : "Standort-Hinweise spielen in den Treffern keine dominante Rolle.";
+
+  const closing =
+    "Die konkreten Stellen — und was du als Nächstes tun kannst — findest du bei den Erkenntnissen und Empfehlungen unten; das ist der Teil, der sich am direktesten in mehr Ruhe übersetzen lässt.";
+
+  const bodyParagraph = [
+    visibilitySentence,
+    resultsSentence,
+    platformSentence,
+    directorySentence,
+    usernameSentence,
+    nameSentence,
+    citySentence,
+  ].join(" ");
+
+  return `${headline}\n\n${bodyParagraph}\n\n${closing}`;
 }
 
 function scoreStatus(score: number): FindingStatus {

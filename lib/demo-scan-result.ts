@@ -70,15 +70,11 @@ export const DEMO_SCAN_RESULT: ScanResponse = {
         "Es gibt Hinweise auf einen möglichen Profil-Treffer anhand eines benutzernamenähnlichen Ergebnisses. Quelle: öffentliches Profil mit ähnlichem Handle und wiederkehrendem Initialmuster.",
     },
   ],
-  aiSummary: `Deine öffentliche Identität lässt sich relativ leicht über mehrere Quellen hinweg verknüpfen.
+  aiSummary: `Mehrere Hinweise zeigen, dass deine Identität aktuell relativ leicht miteinander verknüpft werden kann.
 
-Das stärkste Risiko entsteht dadurch, wie einfach jemand deine öffentlichen Informationen plattformübergreifend zusammenführen kann.
+Such- und Index-Sichtbarkeit liegt mit 7 von 10 eher oben: Es gibt vergleichsweise viele Einstiegspunkte, über die man dich findet. Allein die geschätzte Grössenordnung von rund 12'400 indexierten Treffern zeigt: Du bist online klar präsent. Dazu passen etwa 1 klarere und 1 eher vage Profil-Hinweise — zusammen genug, um ein belastbares Bild zu zeichnen, wenn man es zusammensetzt. Verzeichnisse und Personensuchseiten liefern noch einen klaren Zusatz-Hinweis — solche Listen sind oft besonders präzise. Über den Benutzernamen finden sich 2 zusätzliche Treffer — das kann eine Art roter Faden werden, wenn Profile sich ähneln. Dazu kommen 3 sehr klare Namens-Treffer — das macht eine eindeutige Zuordnung wahrscheinlicher. 2 Standort-Hinweise können Identität zusätzlich verankern — besonders in Kombination mit Name und Profilen.
 
-Es wurden etwa 12'400 indexierte Ergebnisse gefunden, dazu 1 starke Plattform-Treffer, 1 schwächere Plattform-Treffer, 1 Verzeichnis-Signal, 2 benutzernamenbezogene Signale, 3 starke Identitätstreffer und 2 stadtbezogene Signale.
-
-Sichtbarkeitsgewichtung: 7/10.
-
-Zusätzlich deuten Verzeichnis- und Personensuchtreffer darauf hin, dass Name und Region in aggregierten Listen auffindbar sind — ein typisches Muster bei höherer digitaler Verknüpfbarkeit.`,
+Die konkreten Stellen — und was du als Nächstes tun kannst — findest du bei den Erkenntnissen und Empfehlungen unten; das ist der Teil, der sich am direktesten in mehr Ruhe übersetzen lässt.`,
   recommendations: [
     {
       title: "Verzeichnis-Einträge entfernen",

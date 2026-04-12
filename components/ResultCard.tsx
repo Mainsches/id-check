@@ -1,15 +1,34 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { ComponentType, CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, Eye, Hash, Link2, List, User } from "lucide-react";
 import { saveScanSnapshotForPremium } from "@/lib/premium-client-storage";
 import { PREMIUM_INTENT, PREMIUM_INTENT_QUERY } from "@/lib/premium-intent";
 import { ScanResponse, FindingItem } from "@/types/scan";
 import { getResultViewKey } from "@/lib/result-view-key";
+import type { ErkenntnisIconId } from "@/lib/erkenntnisse-insights";
+import { getErkenntnisInsight } from "@/lib/erkenntnisse-insights";
 import LockedFadeContent from "@/components/LockedFadeContent";
 import LockedSensitiveBlock from "@/components/LockedSensitiveBlock";
 import UnlockFullAnalysisCta from "@/components/UnlockFullAnalysisCta";
+
+type InsightIconProps = {
+  className?: string;
+  size?: number;
+  strokeWidth?: number;
+  "aria-hidden"?: boolean;
+};
+
+const ERKENNTNIS_ICONS: Record<ErkenntnisIconId, ComponentType<InsightIconProps>> = {
+  alert: AlertTriangle,
+  eye: Eye,
+  hash: Hash,
+  link: Link2,
+  list: List,
+  user: User,
+};
 
 type ResultCardProps = {
   result: ScanResponse;
@@ -21,30 +40,30 @@ type ResultCardProps = {
 function getRiskMeta(riskLevel: ScanResponse["riskLevel"], riskScore: number) {
   if (riskLevel === "High") {
     return {
-      title: "Hohes Identitätsrisiko",
+      title: "Dein öffentlicher Auftritt wirkt vernetzbar",
       subtitle:
-        "Mehrere Signale deuten darauf hin, dass deine Identität öffentlich leichter erkannt und missbraucht werden könnte.",
-      mood: "Kritisch",
-      summaryBadge: "HOHES RISIKO",
+        "Mehrere Hinweise aus Suche, Profilen und Listen lassen sich gut miteinander in Beziehung setzen — das erhöht die Chance, dass Dritte dich zügig einordnen können.",
+      mood: "Erhöhte Auffälligkeit",
+      summaryBadge: "Handlung sinnvoll",
     };
   }
 
   if (riskLevel === "Medium") {
     return {
-      title: "Mittleres Identitätsrisiko",
+      title: "Es gibt spürbare Verknüpfungspunkte",
       subtitle:
-        "Einige öffentliche Informationen lassen sich bereits miteinander verbinden und über mehrere Quellen hinweg zuordnen.",
-      mood: "Beobachten",
-      summaryBadge: "MITTLERES RISIKO",
+        "Öffentliche Informationen reichen aus, dass eine gezielte Suche dich nicht im Leeren stehen lässt — ohne dass automatisch „alles offen“ ist.",
+      mood: "Im Blick behalten",
+      summaryBadge: "Mit Bedacht prüfen",
     };
   }
 
   return {
-    title: "Niedriges Identitätsrisiko",
+    title: "Deine Spuren wirken eher zurückhaltend",
     subtitle:
-      "Es wurden aktuell nur begrenzte öffentliche Hinweise gefunden, die auf ein erhöhtes Risiko hindeuten.",
-    mood: riskScore <= 15 ? "Niedrige Auffälligkeit" : "Relativ sicher",
-    summaryBadge: "NIEDRIGES RISIKO",
+      "Die geprüften öffentlichen Hinweise ergeben zusammen kein besonders dichtes Bild — das ist eine gute Ausgangslage, die du mit wenigen klaren Gewohnheiten stabil halten kannst.",
+    mood: riskScore <= 15 ? "Ruhiges Profil" : "Solide Basis",
+    summaryBadge: "Gute Ausgangslage",
   };
 }
 
@@ -57,10 +76,10 @@ function getFindingTone(finding: FindingItem) {
 
 function formatFindingShort(label: string) {
   const map: Record<string, string> = {
-    "Identity theft risk core": "Risiko-Kern",
-    "Public visibility": "Sichtbarkeit",
+    "Identity theft risk core": "Gesamtbild",
+    "Public visibility": "Such-Sichtbarkeit",
     "Directory / people-search pages": "Verzeichnisse",
-    "Username reuse exposure": "Benutzername",
+    "Username reuse exposure": "Benutzernamen",
     "Exact identity matches": "Namens-Treffer",
     LinkedIn: "LinkedIn",
     Instagram: "Instagram",
@@ -76,11 +95,11 @@ function formatFindingShort(label: string) {
 
 function translateFindingLabel(label: string) {
   const map: Record<string, string> = {
-    "Identity theft risk core": "Kernrisiko",
-    "Public visibility": "Öffentliche Sichtbarkeit",
-    "Directory / people-search pages": "Verzeichnis- / Personensuchseiten",
-    "Username reuse exposure": "Wiederverwendung von Benutzernamen",
-    "Exact identity matches": "Exakte Identitätstreffer",
+    "Identity theft risk core": "Gesamteinordnung",
+    "Public visibility": "Such-Sichtbarkeit",
+    "Directory / people-search pages": "Verzeichnisse & Personensuche",
+    "Username reuse exposure": "Benutzernamen",
+    "Exact identity matches": "Namens-Treffer",
     LinkedIn: "LinkedIn",
     Instagram: "Instagram",
     Facebook: "Facebook",
@@ -106,14 +125,14 @@ function isPlatformFinding(label: string) {
 }
 
 function platformBadgeText(finding: FindingItem) {
-  if (finding.status === "danger") return "Starker Treffer";
-  if (finding.status === "warning") return "Möglicher Treffer";
-  return "Kein relevanter Treffer";
+  if (finding.status === "danger") return "Eindeutig möglich";
+  if (finding.status === "warning") return "Vermutlich relevant";
+  return "Kein klarer Treffer";
 }
 
 function platformBadgeTeaser(finding: FindingItem, teaserMode: boolean) {
   if (!teaserMode) return platformBadgeText(finding);
-  if (finding.status === "danger" || finding.status === "warning") return "Treffer erkannt";
+  if (finding.status === "danger" || finding.status === "warning") return "Profil prüfen";
   return platformBadgeText(finding);
 }
 
@@ -199,13 +218,10 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
 
   return (
     <section className={`result-shell result-shell-vnext fade-in ${riskClass}`}>
-      <div className="result-orb result-orb-one" />
-      <div className="result-orb result-orb-two" />
-
       <div className="result-header result-header-vnext">
         <div>
-          <span className="eyebrow">Scan-Ergebnis</span>
-          <h2>Dein Identitätsrisiko im Überblick</h2>
+          <span className="eyebrow">Auswertung</span>
+          <h2>Dein digitales Identitätsprofil</h2>
         </div>
 
         <button className="secondary-button secondary-button-gold" onClick={onReset}>
@@ -225,10 +241,10 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
           <div className="score-meta-top">
             <p className={`risk-badge risk-badge-premium ${riskClass}`}>
               {result.riskLevel === "High"
-                ? "Hohes Risiko"
+                ? "Höhere Sensitivität"
                 : result.riskLevel === "Medium"
-                  ? "Mittleres Risiko"
-                  : "Niedriges Risiko"}
+                  ? "Moderate Sensitivität"
+                  : "Geringere Sensitivität"}
             </p>
 
             <span className={`signal-chip signal-chip-main signal-chip-premium ${riskClass}`}>
@@ -259,9 +275,11 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
             </div>
 
             <div className="score-bar-meta">
-              <span className="score-bar-label">{result.riskScore}% Identitätsrisiko</span>
+              <span className="score-bar-label score-bar-label-strong">
+                {result.riskScore}% Gesamtbewertung
+              </span>
               <span className="score-bar-label score-bar-label-soft">
-                basierend auf Sichtbarkeit, Verknüpfbarkeit und Missbrauchssignalen
+                Einordnung aus Sichtbarkeit, verknüpfbaren Profilen und typischen Missbrauchspfaden
               </span>
             </div>
           </div>
@@ -273,29 +291,41 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
           className={`result-gated-inner ${unlockReveal ? "result-gated-inner--unlock-reveal" : ""}`}
         >
           <div className="dashboard-grid">
-            <div className="panel panel-findings panel-compact panel-premium">
+            <section
+              className="panel panel-findings panel-compact panel-premium idradar-export-section idradar-erkenntnisse"
+              id="export-erkenntnisse"
+              aria-labelledby="erkenntnisse-heading"
+            >
               <div className="panel-header-row">
-                <h3>Erkenntnisse</h3>
-                <span className="panel-mini-tag panel-mini-tag-gold">Live-Auswertung</span>
+                <h3 id="erkenntnisse-heading">Erkenntnisse</h3>
+                <span className="panel-mini-tag panel-mini-tag-gold">Verständlich erklärt</span>
               </div>
 
-              <div className="findings-block">
+              <div className="findings-block idradar-erkenntnisse-list" role="list">
                 {coreFindings.map((finding, index) => {
                   const tone = getFindingTone(finding);
                   const maskDeep = teaserMode && index > 0;
+                  const insight = getErkenntnisInsight(finding);
+                  const Icon = ERKENNTNIS_ICONS[insight.iconId];
 
                   return (
-                    <div
+                    <article
                       key={finding.label}
-                      className={`item-row item-row-card item-row-tight item-row-accent item-row-premium ${tone}`}
+                      role="listitem"
+                      className={`insight-card item-row-card item-row-tight item-row-accent item-row-premium finding-row ${tone}`}
                     >
-                      <div className="item-row-top">
-                        <span>{translateFindingLabel(finding.label)}</span>
+                      <div className="insight-card-icon" aria-hidden>
+                        <Icon size={19} strokeWidth={1.65} />
                       </div>
-                      <strong className={maskDeep ? "locked-core-value" : undefined}>
-                        {finding.value}
-                      </strong>
-                    </div>
+                      <div className={`insight-card-main ${maskDeep ? "locked-core-value" : ""}`}>
+                        <h4 className="insight-card-title">{insight.title}</h4>
+                        <p className="insight-card-explanation">{insight.explanation}</p>
+                        <div className="insight-card-meaning">
+                          <span className="insight-card-meaning-kicker">Das bedeutet für dich</span>
+                          <p className="insight-card-meaning-text">{insight.meaning}</p>
+                        </div>
+                      </div>
+                    </article>
                   );
                 })}
               </div>
@@ -304,12 +334,12 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                 <div className="platform-section">
                   <div className="platform-section-head">
                     <div className="platform-heading-wrap">
-                      <h4>Plattform-Signale</h4>
+                      <h4>Profile & Plattformen</h4>
                       <button
                         type="button"
                         className="info-trigger info-trigger-gold"
                         onClick={() => setShowPlatformInfo((prev) => !prev)}
-                        aria-label="Plattform-Signale erklären"
+                        aria-label="Hilfe zu Profilen und Plattformen"
                         aria-expanded={showPlatformInfo}
                       >
                         ?
@@ -321,9 +351,9 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
 
                   {showPlatformInfo && (
                     <div className="info-bubble info-bubble-gold">
-                      Plattform-Signale zeigen, wie stark öffentlich auffindbare Profile mit der
-                      gesuchten Identität zusammenhängen könnten. Berücksichtigt werden Name, Stadt,
-                      Benutzername und typische Profil-URLs.
+                      Hier siehst du, wie gut öffentliche Profile zu deinem Namen, möglichen
+                      Benutzernamen und typischen Profil-URLs passen könnten — nicht jeder Treffer
+                      ist automatisch „du“, aber starke Übereinstimmungen sind ein wichtiger Hebel.
                     </div>
                   )}
 
@@ -350,7 +380,7 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                           <LockedSensitiveBlock
                             locked={teaserMode}
                             onUnlock={goPremium}
-                            overlayLabel="AI Deep Analyse freischalten"
+                            overlayLabel="Details anzeigen"
                           >
                             {finding.url ? (
                               <a
@@ -359,7 +389,7 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                                 rel="noreferrer"
                                 className="platform-link"
                               >
-                                Öffentlichen Treffer öffnen
+                                Profil ansehen
                               </a>
                             ) : (
                               <span className="platform-link platform-link-muted">
@@ -377,11 +407,11 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                   </div>
                 </div>
               )}
-            </div>
+            </section>
 
             <div className="panel panel-summary panel-compact panel-premium">
               <div className="panel-header-row">
-                <h3>KI-Risikoeinschätzung</h3>
+                <h3>KI-Einordnung</h3>
                 <span className="panel-mini-tag panel-mini-tag-gold">Interpretation</span>
               </div>
 
@@ -399,7 +429,7 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                     <>
                       <p className="summary-text summary-text-compact">{summaryBlocks.support[0]}</p>
                       {summaryBlocks.support.length > 1 ? (
-                        <LockedFadeContent locked={teaserMode} maxLines={6}>
+                        <LockedFadeContent locked={teaserMode} maxLines={7}>
                           {summaryBlocks.support.slice(1).map((paragraph, index) => (
                             <p key={index + 1} className="summary-text summary-text-compact">
                               {paragraph}
@@ -409,7 +439,7 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                       ) : null}
                     </>
                   ) : (
-                    <LockedFadeContent locked={teaserMode} maxLines={5}>
+                    <LockedFadeContent locked={teaserMode} maxLines={6}>
                       <p className="summary-text summary-text-compact">{result.aiSummary}</p>
                     </LockedFadeContent>
                   )}
@@ -434,7 +464,7 @@ export default function ResultCard({ result, onReset, detailUnlocked }: ResultCa
                     </div>
                     <div className="recommendation-content">
                       <h4>{item.title}</h4>
-                      <LockedFadeContent locked={teaserMode} maxLines={4}>
+                      <LockedFadeContent locked={teaserMode} maxLines={5}>
                         <p>{item.description}</p>
                       </LockedFadeContent>
                     </div>

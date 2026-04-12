@@ -23,23 +23,23 @@ export function unlockMissingValueHint(result: ScanResponse): string {
   const strongHits = result.rawSignals.exactNameMatches;
 
   if (profileN >= 1 && platformCount >= 1) {
-    return `${profileN} Profil${profileN === 1 ? "" : "e"} und ${platformCount} Verknüpfung${
+    return `Die Auswertung schlägt ${profileN} Profil-Hinweis${profileN === 1 ? "" : "e"} und ${platformCount} Plattform${
       platformCount === 1 ? "" : "en"
-    } erkannt — Details gesperrt.`;
+    } vor — die Einzelheiten sind noch eingeklappt.`;
   }
   if (platformCount >= 1) {
-    return `${platformCount} Plattform-Signal${platformCount === 1 ? "" : "e"} erkannt — Details aktuell gesperrt.`;
+    return `${platformCount} Plattform${platformCount === 1 ? "" : "en"} sind in der Auswertung relevant — Profiltexte und Links sind noch eingeklappt.`;
   }
   if (profileN >= 1) {
-    return `${profileN} Profil${profileN === 1 ? "" : "e"} erkannt — Details aktuell gesperrt.`;
+    return `${profileN} Profil-Hinweis${profileN === 1 ? "" : "e"} fällt auf — die genaue Einordnung ist noch eingeklappt.`;
   }
   if (strongHits === 1) {
-    return "1 starker Treffer erkannt — Details aktuell gesperrt.";
+    return "Ein Treffer wirkt besonders eindeutig — die Details dazu sind noch eingeklappt.";
   }
   if (strongHits >= 2) {
-    return `${strongHits} starke Treffer erkannt — Details aktuell gesperrt.`;
+    return `${strongHits} Treffer wirken besonders eindeutig — die Details dazu sind noch eingeklappt.`;
   }
-  return "Mehrere Treffer in dieser Auswertung erkannt — Details aktuell gesperrt.";
+  return "Es gibt noch weiterführende Einzelheiten in dieser Auswertung — die sind aktuell eingeklappt.";
 }
 
 type UnlockFullAnalysisCtaProps = {
