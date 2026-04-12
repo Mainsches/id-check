@@ -5,7 +5,7 @@ import PremiumUpgradeClient from "./PremiumUpgradeClient";
 export const metadata: Metadata = {
   title: "Premium · ID Radar",
   description:
-    "Erweitere deine Analyse: unbegrenzte Scans, tiefere Risiko-Einblicke und mehr Kontrolle über deine digitale Identität.",
+    "Einmalig CHF 4.90: Vollständige Analyse freischalten und sofort alle Treffer und Verknüpfungen sehen — ohne Abo.",
 };
 
 function PremiumFallback() {

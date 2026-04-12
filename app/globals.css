@@ -3306,6 +3306,38 @@ a.landing-tap:hover {
   color: var(--text);
 }
 
+.premium-pricing-onetime {
+  font-size: 0.42em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(212, 175, 55, 0.95);
+}
+
+.premium-pricing-micro {
+  margin: 0 0 16px;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.premium-pricing-trigger {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.premium-pricing-urgency {
+  margin: 0 0 20px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.38);
+}
+
 .premium-pricing-currency {
   font-size: 0.55em;
   font-weight: 600;

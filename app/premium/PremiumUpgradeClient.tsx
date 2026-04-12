@@ -8,31 +8,25 @@ import {
   parsePremiumIntent,
   PREMIUM_INTENT,
   PREMIUM_INTENT_QUERY,
-  type PremiumIntentValue,
 } from "@/lib/premium-intent";
 import { loadScanSnapshotForPremium, setResultDetailUnlockedForKey } from "@/lib/premium-client-storage";
 import { getResultViewKey } from "@/lib/result-view-key";
 
 const FEATURES = [
   {
-    title: "Unbegrenzte Scans",
-    body: "Analysiere so oft du willst — ohne Tageslimit.",
-    icon: "scan",
-  },
-  {
-    title: "Erweiterte Risikoanalyse",
-    body: "Schärfere Einschätzung deiner Online-Sichtbarkeit und Verknüpfungen.",
-    icon: "chart",
-  },
-  {
-    title: "Detaillierte Plattform-Erkennung",
-    body: "Klarere Zuordnung von Signalen über Netzwerke und Profile hinweg.",
+    title: "Alle Treffer sichtbar",
+    body: "Profile, Hinweise und Verknüpfungen — auf einen Blick.",
     icon: "grid",
   },
   {
-    title: "Frühwarnsystem für neue Signale",
-    body: "Erkenne neue öffentliche Spuren früher — wenn du es aktivierst.",
-    icon: "bell",
+    title: "Risiko verständlich erklärt",
+    body: "Klare Einordnung — ohne Fachjargon.",
+    icon: "chart",
+  },
+  {
+    title: "Nächste Schritte",
+    body: "Konkret — was du jetzt tun kannst.",
+    icon: "scan",
   },
 ] as const;
 
@@ -69,47 +63,27 @@ function FeatureIcon({ name }: { name: (typeof FEATURES)[number]["icon"] }) {
           <rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       );
-    case "bell":
-      return (
-        <svg {...common}>
-          <path
-            d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Z"
-            fill="currentColor"
-            opacity={0.35}
-          />
-          <path
-            d="M6 16h12l-1-1.2V10a6 6 0 1 0-12 0v4.8L6 16Z"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
     default:
       return null;
   }
 }
 
-function copyForIntent(intent: PremiumIntentValue) {
-  if (intent === PREMIUM_INTENT.UNLOCK_EXISTING_RESULT) {
-    return {
-      kicker: "ID Radar Premium",
-      title: "Vollständige Analyse freischalten",
-      sub: "Dieser Scan ist bereits bereit — schalte alle Treffer, Plattformen und Erklärungen für dieses Ergebnis frei.",
-      pricingLabel: "Einmalig für dieses Ergebnis",
-      cta: "Vollständige Analyse freischalten",
-      footnote: "Nach Zahlung siehst du sofort alle Details — ohne neuen Scan.",
-    };
-  }
-  return {
-    kicker: "ID Radar Premium",
-    title: "Premium-Scan freischalten",
-    sub: "Starte jetzt eine vollständige Analyse — mit einem neuen Scan ohne Tageslimit.",
-    pricingLabel: "Premium",
-    cta: "Jetzt vollständigen Scan starten",
-    footnote: "Nach Zahlung kannst du sofort einen Premium-Scan ausführen.",
-  };
-}
+/** Conversion-focused copy: one-time unlock, results-first (same hero for both intents). */
+const HERO = {
+  kicker: "ID Radar",
+  title: "Vollständige Analyse freischalten",
+  sub: "Dein Scan ist bereits bereit — sieh jetzt, welche Profile und Verknüpfungen gefunden wurden.",
+} as const;
+
+const PRICING = {
+  amount: "4.90",
+  subline: "Einmal freischalten – sofort alle Treffer und Details sehen",
+  micro: "Kein Abo. Kein Login erforderlich.",
+  trigger: "Dein Ergebnis ist bereits analysiert",
+  urgency: "Nur noch gesperrt – mit einem Klick sichtbar",
+  cta: "Jetzt vollständigen Scan anzeigen",
+  status: "Bezahlfunktion folgt in Kürze",
+} as const;
 
 export default function PremiumUpgradeClient() {
   const router = useRouter();
@@ -121,8 +95,6 @@ export default function PremiumUpgradeClient() {
     const raw = searchParams.get(PREMIUM_INTENT_QUERY);
     return parsePremiumIntent(raw) ?? DEFAULT_PREMIUM_INTENT;
   }, [searchParams]);
-
-  const copy = copyForIntent(intent);
 
   async function simulatePayment() {
     setError("");
@@ -181,14 +153,14 @@ export default function PremiumUpgradeClient() {
 
       <main className="premium-page-main">
         <header className="premium-hero">
-          <span className="premium-hero-kicker">{copy.kicker}</span>
-          <h1 className="premium-hero-title">{copy.title}</h1>
-          <p className="premium-hero-sub">{copy.sub}</p>
+          <span className="premium-hero-kicker">{HERO.kicker}</span>
+          <h1 className="premium-hero-title">{HERO.title}</h1>
+          <p className="premium-hero-sub">{HERO.sub}</p>
         </header>
 
         <section className="premium-features" aria-labelledby="premium-features-heading">
           <h2 id="premium-features-heading" className="visually-hidden">
-            Premium-Funktionen
+            Was du siehst
           </h2>
           <ul className="premium-feature-grid">
             {FEATURES.map((f) => (
@@ -207,26 +179,30 @@ export default function PremiumUpgradeClient() {
 
         <section className="premium-pricing" aria-labelledby="premium-pricing-heading">
           <div className="premium-pricing-card">
-            <h2 id="premium-pricing-heading" className="premium-pricing-label">
-              {copy.pricingLabel}
+            <h2 id="premium-pricing-heading" className="visually-hidden">
+              Preis
             </h2>
-            <p className="premium-pricing-amount">
-              <span className="premium-pricing-currency">CHF</span> 4.99
-              <span className="premium-pricing-period"> / Monat</span>
+            <p className="premium-pricing-amount premium-pricing-amount--onetime">
+              <span className="premium-pricing-currency">CHF</span> {PRICING.amount}
+              <span className="premium-pricing-onetime"> einmalig</span>
             </p>
-            <p className="premium-pricing-note">Jederzeit kündbar · Preis kann sich vor Start ändern</p>
+            <p className="premium-pricing-note">{PRICING.subline}</p>
+            <p className="premium-pricing-micro">{PRICING.micro}</p>
+            <p className="premium-pricing-trigger">{PRICING.trigger}</p>
+            <p className="premium-pricing-urgency">{PRICING.urgency}</p>
             <button
               type="button"
               className="premium-pricing-cta premium-pricing-cta--active"
               onClick={simulatePayment}
               disabled={busy}
               aria-busy={busy}
+              aria-describedby="premium-status-msg"
             >
-              {busy ? "Wird vorbereitet…" : copy.cta}
+              {busy ? "Einen Moment…" : PRICING.cta}
             </button>
             {error ? <p className="premium-pricing-error">{error}</p> : null}
             <p className="premium-pricing-status" id="premium-status-msg">
-              Bezahlfunktion folgt in Kürze · {copy.footnote}
+              {PRICING.status}
             </p>
           </div>
         </section>
